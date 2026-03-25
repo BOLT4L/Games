@@ -34,7 +34,15 @@ const LANG = {
     waiting: "መጠባበቅ",
     countdown_state: "መቆጠር",
     playing: "መጫወት",
-    ended: "ተጠናቋል"
+    ended: "ተጠናቋል",
+    win_title: "🎉 አሸናፊ ቢንጎ ",
+    win_message: "እንኳን ደስ አለዎት! ቢንጎ አግኝተዋል!",
+    no_bingo: " ቢንጎ የለም",
+    winning_cards: "የአሸናፊ ካርዶች",
+    house_win: "ማንም አልነሳም። ቤቱ አሸነፈ።",
+    already_called: "ቢንጎ አስቀድሞ ጠርተዋል!",
+    no_card_selected: "ካርድ አልተመረጠም",
+    network_error: "የኔትወርክ ችግር ተፈጥሯል"
   },
   en: {
     select_card: "Select Your Card",
@@ -54,7 +62,15 @@ const LANG = {
     waiting: "Waiting",
     countdown_state: "Countdown",
     playing: "Playing",
-    ended: "Ended"
+    ended: "Ended",
+     win_title: "🎉 BINGO WINNER ",
+    win_message: "Congratulations! You hit BINGO!",
+    no_bingo: " No Bingo",
+    winning_cards: "Winning Cards",
+    house_win: "No winners. House takes the pot.",
+    already_called: "You already called BINGO!",
+  no_card_selected: "No card selected",
+  network_error: "Network error"
   },
   or: {
     select_card: "Kaardii Filadhu",
@@ -74,7 +90,15 @@ const LANG = {
     waiting: "Eegaa jira",
     countdown_state: "Lakkoofsa",
     playing: "Taphachaa jira",
-    ended: "Xumurameera"
+    ended: "Xumurameera",
+      win_title: "🎉 BINGO Injifataa ",
+    win_message: "Baga gammaddan! BINGO argattan!",
+    no_bingo: " BINGO hin jiru",
+    winning_cards: "Kaardii Injifataa",
+    house_win: "Namni hin injifanne. Mana injifata.",
+    already_called: "BINGO duraan waamte!",
+  no_card_selected: "Kaardii hin filatamne",
+  network_error: "Rakkoo networkii"
   }
 };
 let currentLang = "am"; // default
@@ -434,13 +458,13 @@ async function callBingo(pattern) {
 
   try {
     if (hasCalledBingo) {
-      showPopup("You already called BINGO!");
+      showPopup(t("already_called"));
       return;
     }
 
     const cardId = myPickedCard;
     if (!cardId) {
-      showPopup("No card selected");
+      showPopup(t("no_card_selected"));
       return;
     }
 
@@ -461,12 +485,11 @@ async function callBingo(pattern) {
       return;
     }
 
-    showPopup(data.message || "Bingo submitted!");
     hasCalledBingo = true;
 
   } catch (err) {
     console.error(err);
-    showPopup("Network error");
+    showPopup(t("network_error"));
   } 
 }
 async function placeBet(cardId,bet){
@@ -602,14 +625,24 @@ async function updateUI() {
       winAmount = (state.pot / winners.length).toFixed(2);
     }
 
-    showPopup(`🎉 BINGO!\nYou won ${winAmount}`);
+    showPopupHTML(`
+    <div class="win-ui">
+      <div class="win-header">${t("win_title")}</div>
 
+      <div class="win-amount">+${winAmount}</div>
+
+      <div class="win-message">${t("win_message")}</div>
+
+      <div class="win-glow"></div>
+      <div class="win-confetti"></div>
+    </div>
+  `);
   } 
   // ❌ CASE 2: USER LOST
   else if (winners.length > 0) {
 
-    let html = `<h3>😢 No Bingo</h3>`;
-    html += `<div>Winning Cards:</div>`;
+    let html = `<h3>${t("no_bingo")}</h3>`;
+    html += `<div>${t("winning_cards")}:</div>`;
 
     winnerCards.forEach(w => {
 
@@ -651,7 +684,7 @@ async function updateUI() {
   } 
   // 😐 CASE 3: NO WINNER (house win)
   else {
-    showPopup("No winners. House takes the pot.");
+    showPopup(t("house_win"));
   }
 
   resultShown = true;
