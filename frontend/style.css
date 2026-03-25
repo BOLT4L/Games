@@ -215,8 +215,8 @@
   #scale-wrapper {
     transform: scale(0.6);
     transform-origin: top left;
-    width: 200%;   /* compensate shrink so layout doesn't collapse */
-    height: 200%;
+    width: 100%;   /* compensate shrink so layout doesn't collapse */
+    height:100%;
   }
   .scale-2x {
   transform: scale(1.6);   /* use 2 if you want very big */
