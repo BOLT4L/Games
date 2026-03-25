@@ -83,7 +83,7 @@ function t(key) {
 }
 function setLang(lang) {
   currentLang = lang;
-  updateUI();
+  
 }
 async function loadCards(){
   const res = await fetch("cards.json");
@@ -482,7 +482,7 @@ async function placeBet(cardId,bet){
 
   selectedCard = cardId;
   myPickedCard = cardId;
-  updateUI();
+  
 }
 
 async function cancelBet(cardId){
@@ -497,7 +497,7 @@ async function cancelBet(cardId){
 
   selectedCard = null;
   myPickedCard = null;
-  updateUI();
+  
 }
 async function fetchUser() {
   try {
@@ -544,19 +544,19 @@ function nextPage(){
   const maxPage = Math.ceil(cardIds.length / CARDS_PER_PAGE) - 1;
   if(currentPage < maxPage){
     currentPage++;
-    updateUI();
+    
   }
 }
 
 function prevPage(){
   if(currentPage > 0){
     currentPage--;
-    updateUI();
+    
   }
 }
 function selectCard(cardId){
   selectedCard = cardId;
-  updateUI();
+  
 }
 function toggleMark(num){
 
@@ -688,7 +688,7 @@ async function updateUI() {
 }
 
 // Poll every 2 seconds
-setInterval(updateUI, 1500);
+setInterval(updateUI, 1000);
 
 // Initial load
 updateUI();

@@ -210,18 +210,17 @@
   display: flex;
   justify-content: center;
   gap: 10px;
-
   padding: 8px;
   background: rgba(0,0,0,0.6);
 }
   .info-box{
     color:white;
-    font-size:13px;
+    font-size:17px;
     font-weight:bold;
     white-space:nowrap;
   }
   #scale-wrapper {
-    transform: scale(0.5);
+    transform: scale(0.6);
     transform-origin: top left;
     width: 200%;   /* compensate shrink so layout doesn't collapse */
     height: 200%;
