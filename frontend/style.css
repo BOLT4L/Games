@@ -227,6 +227,6 @@
     height: 200%;
   }
   .scale-2x {
-  transform: scale(1.8);   /* use 2 if you want very big */
+  transform: scale(1.6);   /* use 2 if you want very big */
   transform-origin: top center;
 }
