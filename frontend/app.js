@@ -159,23 +159,23 @@ else if(selectedCard === cardId) className += " selected";
   html += `</div>`;
 
   /* Pagination */
-  html += `
-  <div style="margin-top:20px;text-align:center">
+ html += `
+<div style="margin-top:20px;text-align:center">
 
-    <button>
+<button onclick="prevPage()">
   ${t("previous")}
 </button>
+
 <span style="margin:0 10px">
-      Page ${currentPage + 1} / 3
-    </span>
-<button>
+  Page ${currentPage + 1} / ${Math.ceil(cardIds.length / CARDS_PER_PAGE)}
+</span>
+
+<button onclick="nextPage()">
   ${t("next")}
 </button>
 
-  
-
-  </div>
-  `;
+</div>
+`;
 
   /* Selected card preview */
  
@@ -541,7 +541,8 @@ function showPopupHTML(html) {
   }, 5000); // longer for viewing cards
 }
 function nextPage(){
-  if(currentPage < 2){
+  const maxPage = Math.ceil(cardIds.length / CARDS_PER_PAGE) - 1;
+  if(currentPage < maxPage){
     currentPage++;
     updateUI();
   }
@@ -687,7 +688,7 @@ async function updateUI() {
 }
 
 // Poll every 2 seconds
-setInterval(updateUI, 1000);
+setInterval(updateUI, 1500);
 
 // Initial load
 updateUI();
