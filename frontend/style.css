@@ -1,0 +1,211 @@
+body{
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg,#4c1d95,#312e81,#1e3a8a);
+  color:white;
+  margin:0;
+  padding:20px;
+}
+
+/* card selection */
+
+.cards{
+  display:grid;
+  grid-template-columns:repeat(10,1fr);
+  gap:6px;
+  max-width:500px;
+  margin:auto;
+  padding:15px;
+  background:rgba(0,0,0,0.25);
+  border-radius:10px;
+}
+
+.card{
+  width:35px;
+  height:35px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+  border-radius:6px;
+  background:linear-gradient(135deg,#f8fafc,#ffffff);
+  color:#222;
+  border:1px solid #ccc;
+  cursor:pointer;
+  transition:0.2s;
+}
+.card-preview{
+margin-top:20px;
+display:flex;
+flex-direction:column;
+align-items:center;
+}
+
+.bingo-header{
+display:grid;
+grid-template-columns:repeat(5,30px);
+gap:4px;
+margin-bottom:5px;
+font-weight:bold;
+text-align:center;
+}
+
+.bingo-grid{
+display:grid;
+grid-template-columns:repeat(5,30px);
+gap:4px;
+}
+
+.bingo-cell{
+width:30px;
+height:30px;
+display:flex;
+align-items:center;
+justify-content:center;
+background:#eee;
+border-radius:6px;
+font-size:12px;
+font-weight:bold;
+}
+.card:hover{
+  transform:scale(1.1);
+  background:linear-gradient(135deg,#6366f1,#22c55e);
+  color:white;
+}
+
+.selected{
+  background:linear-gradient(135deg,#22c55e,#059669);
+  color:white;
+}
+
+.disabled{
+  background:red;
+  cursor:not-allowed;
+}
+.my-card{
+  background:linear-gradient(135deg,#3b82f6,#2563eb);
+  color:white;
+}
+/* arena layout */
+
+.arena{
+  display:flex;
+  gap:15px;
+  justify-content:center;
+  margin-top:20px;
+}
+
+/* called numbers board */
+
+.called-board{
+  background:rgba(255,255,255,0.1);
+  padding:10px;
+  border-radius:8px;
+}
+
+.called-grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:4px;
+}
+
+.called-number{
+  width:28px;
+  height:28px;
+  font-size:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:4px;
+  background:#4338ca;
+}
+
+.called-last{
+  background:#22c55e;
+}
+
+.called-old{
+  background:#ef4444;
+}
+
+/* player bingo card */
+
+.player-card{
+  background:rgba(255,255,255,0.1);
+  padding:10px;
+  border-radius:8px;
+}
+
+.bingo-header{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:5px;
+  margin-bottom:5px;
+}
+
+.bingo-header div{
+  background:#6366f1;
+  padding:5px;
+  border-radius:4px;
+  font-weight:bold;
+}
+
+.bingo-grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:5px;
+}
+
+.bingo-cell{
+  width:40px;
+  height:40px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:6px;
+  background:#1f2937;
+  cursor:pointer;
+}
+
+.bingo-cell.marked{
+  background:#22c55e;
+}
+
+/* popup */
+
+.popup{
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  background:white;
+  color:black;
+  padding:20px;
+  border-radius:10px;
+  display:none;
+  box-shadow:0 10px 25px rgba(0,0,0,0.4);
+}
+.bottom-bar{
+  position:fixed;
+  bottom:0;
+  left:0;
+  width:100%;
+
+  display:flex;
+  justify-content:space-around;
+  align-items:center;
+  gap:10px;
+
+  padding:10px;
+  background:rgba(0,0,0,0.7);
+  backdrop-filter: blur(6px);
+
+  border-top:1px solid rgba(255,255,255,0.2);
+  z-index:999;
+}
+
+.info-box{
+  color:white;
+  font-size:13px;
+  font-weight:bold;
+  white-space:nowrap;
+}
