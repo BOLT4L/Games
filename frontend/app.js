@@ -55,7 +55,7 @@ function renderCardSelection(state){
 
   const app = document.getElementById("app");
 
-  const pickedCards = new Set((state.cards || []).map(c => c[0]));
+  const pickedCards = (state.cards || []).map(c => c[0]);
   const myCard = myPickedCard;
   const start = currentPage * CARDS_PER_PAGE;
   const end = start + CARDS_PER_PAGE;
@@ -187,7 +187,7 @@ function renderGameArena(state){
   const last = calledNumbers[calledNumbers.length-1];
     const prev = calledNumbers[calledNumbers.length-2];
     const prev2 = calledNumbers[calledNumbers.length-3];
- const oldCalled = new Set(calledNumbers.slice(0,-1));
+  const oldCalled = calledNumbers.slice(0,-1);
 
   let html = `<h2>Game Arena</h2>`;
 
@@ -341,7 +341,7 @@ html += `</div>`;
 async function renderGameInfo(state){
 
   const container = document.getElementById("gameInfoBar");
-  const userData = await loadUser();
+  const userData = await fetchUser(); // ✅ get latest balance
   const userBalance = userData ? userData.balance : 0;
   const playersCount = (state.cards || []).length;
   const pot = state.pot || 0;
@@ -401,30 +401,24 @@ async function callBingo(pattern) {
     showPopup("Network error calling bingo");
   }
 }
-async function placeBet(cardId){
+async function placeBet(cardId,bet){
   if (isActionLocked) return;
-  isActionLocked = true;
+   isActionLocked = true;
+  await fetch(`${API_BASE}/room/${ROOM_ID}/pick`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      user_id: USER_ID,
+      card_id: cardId,
+      bet_amount: ROOM_BET_AMOUNT
+    })
+  });
 
-  try {
-    await fetch(`${API_BASE}/room/${ROOM_ID}/pick`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_id: USER_ID,
-        card_id: cardId,
-        bet_amount: ROOM_BET_AMOUNT
-      })
-    });
-
-    selectedCard = cardId;
-    myPickedCard = cardId;
-
-  } finally {
-    isActionLocked = false; // ✅ ALWAYS unlock
-  }
-
+  selectedCard = cardId;
+  myPickedCard = cardId;
   updateUI();
 }
+
 async function cancelBet(cardId){
   await fetch(`${API_BASE}/room/${ROOM_ID}/unpick`, {
     method: "POST",
@@ -459,14 +453,6 @@ async function fetchUser() {
     console.error("Error fetching user:", err);
     return null;
   }
-}
-let cachedUser = null;
-
-async function loadUser(){
-  if(!cachedUser){
-    cachedUser = await fetchUser();
-  }
-  return cachedUser;
 }
 // ------------------ POPUP ------------------
 
@@ -531,8 +517,6 @@ function getBingoColor(num){
 // ------------------ MAIN LOOP ------------------
 let lastRoomState = null;
 async function updateUI() {
-  if (isActionLocked) return;
-
   const state = await fetchState();
   if (!state) return;
   currentState = state;
