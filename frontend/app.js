@@ -446,7 +446,6 @@ async function renderGameInfo(state){
 <div class="info-box"> ${t("pot")}: ${pot}</div>
 <div class="info-box"> ${t("bet")}: ${bet}</div>
 <div class="info-box"> ${t("balance")}: ${userBalance}</div>
-<div class="info-box"> ${t("state")}: ${roomState}</div>
   `;
 
   container.innerHTML = html;
