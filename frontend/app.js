@@ -242,7 +242,7 @@ function renderSelectedCardPreview(){
 
 function renderGameArena(state){
 
-  const app = document.getElementById("apps");
+  const app = document.getElementById("app");
 
   const cardId = myPickedCard;
 
@@ -260,7 +260,7 @@ function renderGameArena(state){
 
   let html = `<h2>${t("game_arena")}</h2>`;
 
-  html += `<div class="arena">`;
+  html += `<div class="arena scale-2x">`;
 
   /* ---------------- PLAYER CARD ---------------- */
 
