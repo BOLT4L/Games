@@ -12,7 +12,6 @@ let myPickedCard = null;
 let currentPage = 0;
 let hasCalledBingo = false;
 let currentState = null;
-let isActionLocked = false;
 let resultShown = false;
 let ROOM_BET_AMOUNT = 0;
 const CARDS_PER_PAGE = 100;
@@ -431,23 +430,20 @@ async function renderGameInfo(state){
 // ------------------ ACTIONS ------------------
 
 async function callBingo(pattern) {
-  if (isActionLocked) return;
-  isActionLocked = true;
 
-  if (hasCalledBingo) {
-    showPopup("You have already called BINGO this game!");
-    isActionLocked = false;
-    return;
-  }
-
-  const cardId = myPickedCard;
-  if (!cardId) {
-    showPopup("No card selected");
-    isActionLocked = false;
-    return;
-  }
 
   try {
+    if (hasCalledBingo) {
+      showPopup("You already called BINGO!");
+      return;
+    }
+
+    const cardId = myPickedCard;
+    if (!cardId) {
+      showPopup("No card selected");
+      return;
+    }
+
     const res = await fetch(`${API_BASE}/room/${ROOM_ID}/bingo`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -470,14 +466,10 @@ async function callBingo(pattern) {
 
   } catch (err) {
     console.error(err);
-    showPopup("Network error calling bingo");
-  } finally {
-    isActionLocked = false; // ✅ UNLOCK HERE
-  }
+    showPopup("Network error");
+  } 
 }
 async function placeBet(cardId,bet){
-  if (isActionLocked) return;
-   isActionLocked = true;
   await fetch(`${API_BASE}/room/${ROOM_ID}/pick`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
