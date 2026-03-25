@@ -439,6 +439,27 @@ async function cancelBet(cardId){
   myPickedCard = null;
   updateUI();
 }
+async function fetchUser() {
+  try {
+    const res = await fetch(`${API_BASE}/user/${USER_ID}`, {
+      headers: {
+        "ngrok-skip-browser-warning": "true"
+      }
+    });
+    
+    if (!res.ok) {
+      console.error("User fetch failed:", res.status);
+      return null;
+    }
+
+    const data = await res.json();
+    return data.exists ? data : null;
+
+  } catch (err) {
+    console.error("Error fetching user:", err);
+    return null;
+  }
+}
 let cachedUser = null;
 
 async function loadUser(){
