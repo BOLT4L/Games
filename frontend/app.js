@@ -431,16 +431,19 @@ async function renderGameInfo(state){
 // ------------------ ACTIONS ------------------
 
 async function callBingo(pattern) {
-    if (isActionLocked) return;
-        isActionLocked = true;
-  if(hasCalledBingo){
+  if (isActionLocked) return;
+  isActionLocked = true;
+
+  if (hasCalledBingo) {
     showPopup("You have already called BINGO this game!");
+    isActionLocked = false;
     return;
   }
 
   const cardId = myPickedCard;
-  if(!cardId){
+  if (!cardId) {
     showPopup("No card selected");
+    isActionLocked = false;
     return;
   }
 
@@ -457,17 +460,19 @@ async function callBingo(pattern) {
 
     const data = await res.json();
 
-    if(!res.ok){
+    if (!res.ok) {
       showPopup(data.error || "Bingo failed");
       return;
     }
 
     showPopup(data.message || "Bingo submitted!");
-    hasCalledBingo = true; // ✅ mark that the user has called bingo
+    hasCalledBingo = true;
 
-  } catch(err){
+  } catch (err) {
     console.error(err);
     showPopup("Network error calling bingo");
+  } finally {
+    isActionLocked = false; // ✅ UNLOCK HERE
   }
 }
 async function placeBet(cardId,bet){
