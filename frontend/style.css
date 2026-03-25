@@ -198,21 +198,14 @@
   justify-content: space-around;
   align-items: center;
 
-  padding: 10px;
+  padding: 6px;
   background: rgba(0,0,0,0.7);
   backdrop-filter: blur(6px);
 
   border-bottom: 1px solid rgba(255,255,255,0.2);
 }
 
-/* language buttons now flow UNDER the bar */
-.lang-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  padding: 8px;
-  background: rgba(0,0,0,0.6);
-}
+
   .info-box{
     color:white;
     font-size:14px;
