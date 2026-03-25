@@ -186,16 +186,16 @@ else if(selectedCard === cardId) className += " selected";
  html += `
 <div style="margin-top:20px;text-align:center">
 
-<button onclick="prevPage()">
-  ${t("previous")}
+<button class="nav-btn" onclick="prevPage()">
+  ⬅ ${t("previous")}
 </button>
 
-<span style="margin:0 10px">
+<span style="margin:0 15px;font-weight:bold">
   Page ${currentPage + 1} / ${Math.ceil(cardIds.length / CARDS_PER_PAGE)}
 </span>
 
-<button onclick="nextPage()">
-  ${t("next")}
+<button class="nav-btn" onclick="nextPage()">
+  ${t("next")} ➡
 </button>
 
 </div>

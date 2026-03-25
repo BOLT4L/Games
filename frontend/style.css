@@ -215,7 +215,7 @@
 }
   .info-box{
     color:white;
-    font-size:15px;
+    font-size:14px;
     font-weight:bold;
     white-space:nowrap;
   }
@@ -228,4 +228,54 @@
   .scale-2x {
   transform: scale(1.6);   /* use 2 if you want very big */
   transform-origin: top center;
+}
+/* NAVIGATION BUTTONS */
+.nav-btn {
+  padding: 10px 18px;
+  margin: 5px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.nav-btn:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
+.nav-btn:active {
+  transform: scale(0.95);
+}
+
+
+/* LANGUAGE SWITCH */
+.lang-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.lang-buttons button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  background: #111827;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+.lang-buttons button:hover {
+  background: #374151;
+}
+
+.lang-buttons button.active {
+  background: #22c55e;
 }
