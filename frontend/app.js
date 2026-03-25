@@ -242,7 +242,7 @@ function renderSelectedCardPreview(){
 
 function renderGameArena(state){
 
-  const app = document.getElementById("app");
+  const app = document.getElementById("apps");
 
   const cardId = myPickedCard;
 

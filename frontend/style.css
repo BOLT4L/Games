@@ -4,7 +4,7 @@ body{
   color:white;
   margin:0;
   padding:20px;
-  
+  padding-top: 60px;  
 }
 
 /* card selection */
@@ -215,13 +215,4 @@ font-weight:bold;
   transform-origin: top left;
   width: 200%;   /* compensate shrink so layout doesn't collapse */
   height: 200%;
-}
-html, body {
-  height: 100%;
-  overflow: hidden; /* 🚀 removes scrolling */
-}
-
-#scale-wrapper {
-  height: 100%;
-  overflow: hidden;
 }
