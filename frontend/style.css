@@ -2,6 +2,7 @@
     font-family: Arial, sans-serif;
     background: linear-gradient(135deg,#4c1d95,#312e81,#1e3a8a);
     color:white;
+    overflow-x: hidden;
     margin:0;
   }
 
@@ -213,10 +214,10 @@
     white-space:nowrap;
   }
   #scale-wrapper {
-    transform: scale(0.55);
+    transform: scale(0.5);
     transform-origin: top left;
-    width: 150%;   /* compensate shrink so layout doesn't collapse */
-    height:100%;
+    width: 200%;   /* compensate shrink so layout doesn't collapse */
+    height: 200%;
   }
   .scale-2x {
   transform: scale(1.6);   /* use 2 if you want very big */
