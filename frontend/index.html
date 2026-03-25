@@ -9,14 +9,18 @@
 <body>
 
 <div id="scale-wrapper">
-     <div id="gameInfoBar" class="bottom-bar"></div>
+
+  <!-- Language buttons moved here -->
+  <div class="lang-buttons">
+    <button onclick="setLang('am')">AM</button>
+    <button onclick="setLang('en')">EN</button>
+    <button onclick="setLang('or')">OR</button>
+  </div>
+
+  <div id="gameInfoBar" class="bottom-bar"></div>
+
   <div class="top-layout">
     <div>
-        <div>
-  <button onclick="setLang('am')">AM</button>
-  <button onclick="setLang('en')">EN</button>
-  <button onclick="setLang('or')">OR</button>
-</div>
       <h1>Bingo Game</h1>
       <div id="countdown"></div>
     </div>
@@ -25,9 +29,9 @@
 
   <div id="app"></div>
   <div id="popup" class="popup"></div>
- 
+
 </div>
- <div id="app"></div>
+ <div id="apps"></div>
 
 <script src="app.js"></script>
 </body>

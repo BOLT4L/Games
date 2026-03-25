@@ -3,8 +3,6 @@ body{
   background: linear-gradient(135deg,#4c1d95,#312e81,#1e3a8a);
   color:white;
   margin:0;
-  padding:20px;
-  padding-top: 60px;  
 }
 
 /* card selection */
@@ -215,4 +213,23 @@ font-weight:bold;
   transform-origin: top left;
   width: 200%;   /* compensate shrink so layout doesn't collapse */
   height: 200%;
+}
+.lang-buttons {
+  position: fixed;
+  bottom: 60px; /* push above bottom bar */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  gap: 10px;
+}
+
+.lang-buttons button {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  background: #6366f1;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
 }
