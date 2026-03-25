@@ -213,9 +213,9 @@
     white-space:nowrap;
   }
   #scale-wrapper {
-    transform: scale(0.6);
+    transform: scale(0.55);
     transform-origin: top left;
-    width: 100%;   /* compensate shrink so layout doesn't collapse */
+    width: 150%;   /* compensate shrink so layout doesn't collapse */
     height:100%;
   }
   .scale-2x {
