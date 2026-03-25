@@ -187,7 +187,7 @@ font-weight:bold;
 }
 .bottom-bar{
   position:fixed;
-  bottom:0;
+  top:0;
   left:0;
   width:100%;
 
@@ -215,4 +215,13 @@ font-weight:bold;
   transform-origin: top left;
   width: 200%;   /* compensate shrink so layout doesn't collapse */
   height: 200%;
+}
+html, body {
+  height: 100%;
+  overflow: hidden; /* 🚀 removes scrolling */
+}
+
+#scale-wrapper {
+  height: 100%;
+  overflow: hidden;
 }
