@@ -209,3 +209,9 @@ font-weight:bold;
   font-weight:bold;
   white-space:nowrap;
 }
+#scale-wrapper {
+  transform: scale(0.5);
+  transform-origin: top left;
+  width: 200%;   /* compensate shrink so layout doesn't collapse */
+  height: 200%;
+}
