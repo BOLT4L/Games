@@ -16,7 +16,76 @@ let isActionLocked = false;
 let resultShown = false;
 let ROOM_BET_AMOUNT = 0;
 const CARDS_PER_PAGE = 100;
-
+const LANG = {
+  am: {
+    select_card: "ካርድ ይምረጡ",
+    countdown: "ቆጠራ",
+    previous: "ቀዳሚ",
+    next: "ቀጣይ",
+    place_bet: "ውርርድ አስገባ",
+    cancel_bet: "ውርርድ ሰርዝ",
+    game_arena: "የጨዋታ መድረክ",
+    bingo: "ቢንጎ",
+    no_card: "ካርድ አልተመረጠም",
+    players: "ተጫዋቾች",
+    pot: "ገንዘብ",
+    bet: "ውርርድ",
+    balance: "ቀሪ ሂሳብ",
+    state: "ሁኔታ",
+    waiting: "መጠባበቅ",
+    countdown_state: "መቆጠር",
+    playing: "መጫወት",
+    ended: "ተጠናቋል"
+  },
+  en: {
+    select_card: "Select Your Card",
+    countdown: "Countdown",
+    previous: "Previous",
+    next: "Next",
+    place_bet: "Place Bet",
+    cancel_bet: "Cancel Bet",
+    game_arena: "Game Arena",
+    bingo: "BINGO",
+    no_card: "No card selected yet!",
+    players: "Players",
+    pot: "Pot",
+    bet: "Bet",
+    balance: "Balance",
+    state: "State",
+    waiting: "Waiting",
+    countdown_state: "Countdown",
+    playing: "Playing",
+    ended: "Ended"
+  },
+  or: {
+    select_card: "Kaardii Filadhu",
+    countdown: "Lakkoofsa",
+    previous: "Dura",
+    next: "Itti Aanu",
+    place_bet: "Sharata Galchi",
+    cancel_bet: "Sharata Haqi",
+    game_arena: "Dirree Taphaa",
+    bingo: "BINGO",
+    no_card: "Kaardii hin filatamne",
+    players: "Taphattoota",
+    pot: "Maallaqa",
+    bet: "Sharata",
+    balance: "Haftee",
+    state: "Haala",
+    waiting: "Eegaa jira",
+    countdown_state: "Lakkoofsa",
+    playing: "Taphachaa jira",
+    ended: "Xumurameera"
+  }
+};
+let currentLang = "am"; // default
+function t(key) {
+  return LANG[currentLang][key] || key;
+}
+function setLang(lang) {
+  currentLang = lang;
+  updateUI();
+}
 async function loadCards(){
   const res = await fetch("cards.json");
   allCards = await res.json();
@@ -63,8 +132,8 @@ function renderCardSelection(state){
   const pageCards = cardIds.slice(start, end);
 
   let html = `
-  <h2>Select Your Card</h2>
-  <div>Countdown: ${state.countdown}</div>
+  <h2>${t("select_card")}</h2>
+  <div>${t("countdown")}: ${state.countdown}</div>
 
   <div class="cards">
   `;
@@ -94,17 +163,17 @@ else if(selectedCard === cardId) className += " selected";
   html += `
   <div style="margin-top:20px;text-align:center">
 
-    <button onclick="prevPage()" ${currentPage === 0 ? "disabled" : ""}>
-      Previous
-    </button>
-
-    <span style="margin:0 10px">
+    <button>
+  ${t("previous")}
+</button>
+<span style="margin:0 10px">
       Page ${currentPage + 1} / 3
     </span>
+<button>
+  ${t("next")}
+</button>
 
-    <button onclick="nextPage()" ${currentPage === 2 ? "disabled" : ""}>
-      Next
-    </button>
+  
 
   </div>
   `;
@@ -153,14 +222,14 @@ function renderSelectedCardPreview(){
     html += `
       <button onclick="cancelBet('${myPickedCard}')"
         style="padding:10px 20px;background:red;color:white;border:none;border-radius:6px">
-        Cancel Bet
+        ${t("cancel_bet")}
       </button>
     `;
   } else {
     html += `
       <button onclick="placeBet('${selectedCard}','')"
         style="padding:10px 20px;background:green;color:white;border:none;border-radius:6px">
-        Place Bet
+        ${t("place_bet")}
       </button>
     `;
   }
@@ -178,7 +247,7 @@ function renderGameArena(state){
   const cardId = myPickedCard;
 
   if (!cardId || !allCards[cardId]) {
-    app.innerHTML = "<h2>No card selected yet!</h2>";
+    app.innerHTML = `<h2>${t("no_card")}</h2>`;
     return;
   }
 
@@ -189,7 +258,7 @@ function renderGameArena(state){
     const prev2 = calledNumbers[calledNumbers.length-3];
   const oldCalled = calledNumbers.slice(0,-1);
 
-  let html = `<h2>Game Arena</h2>`;
+  let html = `<h2>${t("game_arena")}</h2>`;
 
   html += `<div class="arena">`;
 
@@ -241,7 +310,7 @@ html += `
       cursor:pointer;
       box-shadow:0 4px 10px rgba(0,0,0,0.3);
     ">
-    BINGO
+    ${t("bingo")}
   </button>
 </div>
 `;
@@ -350,11 +419,11 @@ async function renderGameInfo(state){
 
 
   let html = `
-    <div class="info-box"> Players: ${playersCount}</div>
-    <div class="info-box"> Pot: ${pot}</div>
-    <div class="info-box"> Bet: ${bet}</div>
-    <div class="info-box"> Balance: ${userBalance}</div>
-    <div class="info-box"> State: ${roomState}</div>
+<div class="info-box"> ${t("players")}: ${playersCount}</div>
+<div class="info-box"> ${t("pot")}: ${pot}</div>
+<div class="info-box"> ${t("bet")}: ${bet}</div>
+<div class="info-box"> ${t("balance")}: ${userBalance}</div>
+<div class="info-box"> ${t("state")}: ${roomState}</div>
   `;
 
   container.innerHTML = html;
@@ -590,7 +659,7 @@ async function updateUI() {
   resultShown = true;
 }
   document.getElementById("countdown").innerText =
-    `Room State: ${state.state}`;
+    `${t("state")}: ${state.state}`;
   ROOM_BET_AMOUNT = state.bet_amount || state.bet || 0;
   calledNumbers = state.drawn_numbers || [];
   // check if user already has a card
