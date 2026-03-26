@@ -102,7 +102,6 @@ function t(key) {
 }
 function setLang(lang) {
   currentLang = lang;
-  updateGameInfo(currentState)
   handleStateUpdate(currentState)
   
 }
@@ -238,6 +237,8 @@ function renderSelectedCardPreview(){
   attachPreviewEvents();
 }
 
+let arenaInitialized = false;
+
 function renderGameArena(state){
 
   const app = document.getElementById("app");
@@ -245,170 +246,138 @@ function renderGameArena(state){
   const cardId = myPickedCard;
 
   if (!cardId) {
-    document.getElementById("app").innerHTML = "<h2>Waiting for your card...</h2>";
+    app.innerHTML = "<h2>Waiting for your card...</h2>";
     return;
   }
 
-  if (!cardId || !allCards[cardId]) {
+  if (!allCards[cardId]) {
     app.innerHTML = `<h2>${t("no_card")}</h2>`;
     return;
   }
 
-  const numbers = allCards[cardId];
-  const lastCalled = calledNumbers[calledNumbers.length-1];
-  const last = calledNumbers[calledNumbers.length-1];
-    const prev = calledNumbers[calledNumbers.length-2];
-    const prev2 = calledNumbers[calledNumbers.length-3];
-  const oldCalled = calledNumbers.slice(0,-1);
+  // 🔥 ONLY render base ONCE
+  if (!arenaInitialized) {
 
-  let html = `<h2>${t("game_arena")}</h2>`;
+    app.innerHTML = `
+      <h2>${t("game_arena")}</h2>
 
-  html += `<div class="arena scale-2x">`;
-  
-  /* ---------------- PLAYER CARD ---------------- */
+      <div class="arena scale-2x">
+        <div id="calledBoard"></div>
+        <div id="playerCard"></div>
+      </div>
 
+      
+    `;
 
-  /* ---------------- CALLED NUMBERS BOARD ---------------- */
+    renderPlayerCard();     // 🔥 render ONCE
+    updateCalledBoard();    // 🔥 initial board
 
- html += `<div class="called-board">`;
+    attachArenaEvents();
 
-/* ---- DRAW HISTORY CIRCLES ---- */
-
-html += `<div style="display:flex;justify-content:center;gap:10px;margin-bottom:10px;align-items:flex-end">`;
-
-if(last){
-  html += `
-  <div style="
-    width:30px;
-    height:30px;
-    border-radius:50%;
-    background:${getBingoColor(last)};
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:12px;
-    font-weight:bold;
-    box-shadow:0 0 10px rgba(0,0,0,0.4);
-  ">${last}</div>`;
-}
-
-if(prev){
-  html += `
-  <div style="
-    width:22px;
-    height:22px;
-    border-radius:50%;
-    background:${getBingoColor(prev)};
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:10px;
-    font-weight:bold;
-  ">${prev}</div>`;
-}
-
-if(prev2){
-  html += `
-  <div style="
-    width:16px;
-    height:16px;
-    border-radius:50%;
-    background:${getBingoColor(prev2)};
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:8px;
-    font-weight:bold;
-  ">${prev2}</div>`;
-}
-
-
-html += `</div>`;
-
-  html += `
-  <div class="bingo-header">
-    <div>B</div>
-    <div>I</div>
-    <div>N</div>
-    <div>G</div>
-    <div>O</div>
-  </div>
-  `;
-
-  html += `<div class="called-grid">`;
-
-for(let row=1; row<=15; row++){
-  for(let col=0; col<5; col++){
-
-    const num = row + col*15;
-
-    let cls = "called-number";
-
-    if(num === lastCalled) cls += " called-last";
-    else if(oldCalled.includes(num)) cls += " called-old";
-
-    html += `<div class="${cls}">${num}</div>`;
+    arenaInitialized = true;
   }
 }
+function renderPlayerCard(){
 
-html += `</div>`;
-  html += `</div>`;
+  const container = document.getElementById("playerCard");
 
-  html += `<div class="player-card">`;
+  const numbers = allCards[myPickedCard];
 
-  html += `
-  <div class="bingo-header">
-    <div>B</div>
-    <div>I</div>
-    <div>N</div>
-    <div>G</div>
-    <div>O</div>
-  </div>
+  let html = `
+    <div class="player-card">
+      <div class="bingo-header">
+        <div>B</div><div>I</div><div>N</div><div>G</div><div>O</div>
+      </div>
+
+      <div class="bingo-grid">
   `;
 
-  html += `<div class="bingo-grid">`;
-
   numbers.forEach(n=>{
-
-    const isMarked = markedCells.has(n);
-
-    html+=`
-    <div 
-      class="bingo-cell ${isMarked ? "marked":""}"
-      onclick="toggleMark(${n})"
-    >
-      ${n===0 ? "★" : n}
-    </div>`;
+    html += `
+      <div 
+        class="bingo-cell ${markedCells.has(n) ? "marked":""}"
+        data-num="${n}"
+        onclick="toggleMark(${n})"
+      >
+        ${n===0 ? "★" : n}
+      </div>
+    `;
   });
+
+  html += `</div>
+  <div style="display:flex;justify-content:center;margin-top:10px">
+        <button id="callBingoBtn"
+          style="
+            padding:10px 20px;
+            font-weight:bold;
+            font-size:16px;
+            background:linear-gradient(135deg,#22c55e,#16a34a);
+            color:white;
+            border:none;
+            border-radius:8px;
+            cursor:pointer;
+            box-shadow:0 4px 10px rgba(0,0,0,0.3);
+          ">
+          ${t("bingo")}
+        </button>
+      </div></div>`;
+
+  container.innerHTML = html;
+}
+function updateCalledBoard(){
+
+  const container = document.getElementById("calledBoard");
+  if(!container) return;
+
+  const last = calledNumbers[calledNumbers.length-1];
+  const prev = calledNumbers[calledNumbers.length-2];
+  const prev2 = calledNumbers[calledNumbers.length-3];
+  const oldCalled = calledNumbers.slice(0,-1);
+
+  let html = `<div class="called-board">`;
+
+  // ---- circles ----
+  html += `<div style="display:flex;justify-content:center;gap:10px;margin-bottom:10px;align-items:flex-end">`;
+
+  if(last){
+    html += `<div style="width:30px;height:30px;border-radius:50%;background:${getBingoColor(last)};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;">${last}</div>`;
+  }
+
+  if(prev){
+    html += `<div style="width:22px;height:22px;border-radius:50%;background:${getBingoColor(prev)};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;">${prev}</div>`;
+  }
+
+  if(prev2){
+    html += `<div style="width:16px;height:16px;border-radius:50%;background:${getBingoColor(prev2)};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:bold;">${prev2}</div>`;
+  }
 
   html += `</div>`;
 
-/* ---- BINGO BUTTON ---- */
+  // ---- grid ----
+  html += `
+    <div class="bingo-header">
+      <div>B</div><div>I</div><div>N</div><div>G</div><div>O</div>
+    </div>
+    <div class="called-grid">
+  `;
 
-html += `
-<div style="display:flex;justify-content:center;margin-top:10px">
-  <button id="callBingoBtn"
-    style="
-      padding:10px 20px;
-      font-weight:bold;
-      font-size:16px;
-      background:linear-gradient(135deg,#22c55e,#16a34a);
-      color:white;
-      border:none;
-      border-radius:8px;
-      cursor:pointer;
-      box-shadow:0 4px 10px rgba(0,0,0,0.3);
-    ">
-    ${t("bingo")}
-  </button>
-</div>
-`;
+  for(let row=1; row<=15; row++){
+    for(let col=0; col<5; col++){
 
-html += `</div>`;
+      const num = row + col*15;
 
+      let cls = "called-number";
 
-  app.innerHTML = html;
-attachArenaEvents();
+      if(num === last) cls += " called-last";
+      else if(oldCalled.includes(num)) cls += " called-old";
+
+      html += `<div class="${cls}">${num}</div>`;
+    }
+  }
+
+  html += `</div></div>`;
+
+  container.innerHTML = html;
 }
 async function renderGameInfo(state){
 
@@ -533,6 +502,10 @@ async function fetchUser() {
     return null;
   }
 }
+function clearPreview(){
+  const container = document.getElementById("selectedCardPreview");
+  if(container) container.innerHTML = "";
+}
 function attachPreviewEvents() {
   const placeBtn = document.getElementById("placeBetBtn");
   const cancelBtn = document.getElementById("cancelBetBtn");
@@ -577,6 +550,156 @@ function showPopupHTML(html) {
     popup.style.display = "none";
   }, 5000); // longer for viewing cards
 }
+function showWinnerPopup(winnerCard) {
+  const popup = document.getElementById("popup");
+  
+  popup.innerHTML = `
+    <div style="
+      padding:20px; 
+      background: linear-gradient(135deg, #22c55e, #16a34a); 
+      color:white; 
+      border-radius:12px; 
+      text-align:center;
+      box-shadow:0 4px 15px rgba(0,0,0,0.4);
+      animation: popIn 0.5s ease-out;
+    ">
+      <h2>🎉 YOU WON! 🎉</h2>
+      <p>Congratulations! You won with card #${winnerCard.card_id.replace("card","")}</p>
+      <div id="winnerCardContainer"></div>
+    </div>
+  `;
+
+  renderHighlightedCard(winnerCard.card_id, winnerCard.pattern, "winnerCardContainer", true);
+
+  popup.style.display = "block";
+
+  setTimeout(() => { popup.style.display = "none"; }, 7000);
+}
+function showLoserPopup(winnerCards) {
+  const popup = document.getElementById("popup");
+
+  let html = `
+    <div style="
+      padding:20px; 
+      background:#1e40af; 
+      color:white; 
+      border-radius:12px; 
+      text-align:center;
+      box-shadow:0 4px 15px rgba(0,0,0,0.4);
+    ">
+      <h2>Game Over!</h2>
+      <p>Winner card(s):</p>
+  `;
+
+  winnerCards.forEach((w, index) => {
+    html += `<div id="loserCard_${index}" style="margin:10px auto"></div>`;
+  });
+
+  html += `</div>`;
+  popup.innerHTML = html;
+  popup.style.display = "block";
+
+  winnerCards.forEach((w, index) => {
+    renderHighlightedCard(w.card_id, w.pattern, `loserCard_${index}`, false);
+  });
+
+  setTimeout(() => { popup.style.display = "none"; }, 7000);
+}
+async function renderHighlightedCard(cardId, pattern, containerId, isWinner=false) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const res = await fetch("cards.json");
+  allCards = await res.json();
+  const numbers = allCards[cardId];
+
+  if (!numbers) {
+    container.innerHTML = `<div style="color:red">Card ${cardId} not found!</div>`;
+    return;
+  }
+
+  // convert pattern to a set for faster lookup
+  const markedSet = new Set(pattern);
+
+  // Helper to find winning line
+  function getWinningLine(nums) {
+    // rows
+    const rows = [
+      [0,1,2,3,4],
+      [5,6,7,8,9],
+      [10,11,12,13,14],
+      [15,16,17,18,19],
+      [20,21,22,23,24]
+    ];
+    for (let row of rows) if (row.every(i => markedSet.has(nums[i]))) return row;
+
+    // columns
+    const cols = [
+      [0,5,10,15,20],
+      [1,6,11,16,21],
+      [2,7,12,17,22],
+      [3,8,13,18,23],
+      [4,9,14,19,24]
+    ];
+    for (let col of cols) if (col.every(i => markedSet.has(nums[i]))) return col;
+
+    // diagonals
+    const diag1 = [0,6,12,18,24];
+    const diag2 = [4,8,12,16,20];
+    if (diag1.every(i => markedSet.has(nums[i]))) return diag1;
+    if (diag2.every(i => markedSet.has(nums[i]))) return diag2;
+
+    // four corners
+    const corners = [0,4,20,24];
+    if (corners.every(i => markedSet.has(nums[i]))) return corners;
+
+    return []; // no winning line
+  }
+
+  const winningLine = getWinningLine(numbers);
+
+  const size = isWinner ? "scale-1.5" : "scale-1";
+
+  let html = `<div class="card-preview ${size}" style="display:inline-block">`;
+
+  html += `
+    <div class="bingo-header">
+      <div>B</div><div>I</div><div>N</div><div>G</div><div>O</div>
+    </div>
+    <div class="bingo-grid">
+  `;
+
+  numbers.forEach((n, index) => {
+    const isMarked = markedSet.has(n);
+    const isWinning = winningLine.includes(index);
+    let bg = "#fff";
+    let color = "#000";
+
+    if (isWinning) {
+      bg = "#447ffe"; // green for winning line
+      color = "#fff";
+    } else if (isMarked) {
+      bg = "#fbbf24"; // yellow for marked numbers not in winning line
+      color = "#000";
+    }
+
+    html += `<div class="bingo-cell" style="
+        width:30px;
+        height:30px;
+        text-align:center;
+        margin:1px;
+        background:${bg};
+        color:${color};
+        border:1px solid #ccc;
+        border-radius:4px
+      ">
+      ${n===0?"★":n}
+    </div>`;
+  });
+
+  html += `</div></div>`;
+  container.innerHTML = html;
+}
 function nextPage(){
   const maxPage = Math.ceil(cardIds.length / CARDS_PER_PAGE) - 1;
   if(currentPage < maxPage){
@@ -609,26 +732,114 @@ function toggleMark(num){
 
   updateSingleCell(num);
 }
+function updateSingleCell(num){
+  const cell = document.querySelector(`.bingo-cell[data-num="${num}"]`);
+  if(!cell) return;
+
+  if(markedCells.has(num)){
+    cell.classList.add("marked");
+  } else {
+    cell.classList.remove("marked");
+  }
+}
 function handleStateUpdate(state) {
   const normalized = normalizeState(state);
   currentState = normalized;
 
+  // 🔥 ALWAYS update core info
   updateGameInfo(normalized);
 
+  // 🔥 detect my card
   const userCard = (normalized.cards || []).find(c => c[1] === USER_ID);
   myPickedCard = userCard ? userCard[0] : null;
-  selectedCard = myPickedCard;
+
+  // 🔥 keep selectedCard in sync ONLY if I have a card
+  if (myPickedCard) {
+    selectedCard = myPickedCard;
+  }
 
   const roomState = normalized.state;
 
-  // 🔥 ALWAYS update cards when in selection phase
+  // =========================
+  // 🎯 WAITING / COUNTDOWN
+  // =========================
   if (roomState === "waiting" || roomState === "countdown") {
-    updateCardSelection(normalized);   // 🔥 USE THIS
-    renderSelectedCardPreview();
-  } else {
-    updateCalledNumbers(normalized);
-    updateGameArena(normalized);
+
+  // 🔥 reset player state if previous state was ended
+  if(lastRoomState === "ended") {
+    resetPlayerState();
   }
+
+  // 🔥 cards UI sync
+  updateCardSelection(normalized);
+  renderSelectedCardPreview();
+
+  arenaInitialized = false;
+  lastRoomState = roomState;
+  return;
+}
+
+  // =========================
+  // 🎯 PLAYING
+  // =========================
+  clearPreview();
+
+ if (roomState === "playing") {
+
+  // 🔥 First time entering playing → build arena ONCE
+  if (!arenaInitialized) {
+    renderGameArena(normalized);
+  }
+
+  // 🔥 Always update numbers (this updates UI internally)
+  updateCalledNumbers(normalized);
+
+  return;
+}
+  // =========================
+  // 🎯 ENDED
+  // =========================
+  if (roomState === "ended") {
+
+    updateGameArena(normalized);
+
+    // optional: show result popup once
+    if (!resultShown && normalized.winners) {
+      resultShown = true;
+
+      const userWinner = normalized.winners.includes(USER_ID);
+
+      if (userWinner) {
+        // ✅ Current user won
+      const myWinnerCard = normalized.winner_cards.find(c => c.card_id === myPickedCard);
+      console.log(myWinnerCard)
+      showWinnerPopup(myWinnerCard);
+      } else {
+        // ❌ Current user lost
+        showLoserPopup(normalized.winners);
+      }
+    }
+    lastRoomState = roomState;
+    return;
+  }
+  
+}
+function resetPlayerState() {
+  // clear marked numbers
+  markedCells.clear();
+
+  // reset selected and picked card
+  selectedCard = null;
+  myPickedCard = null;
+
+  // clear preview
+  clearPreview();
+
+  // mark arena as not initialized (so it rebuilds properly)
+  arenaInitialized = false;
+
+  // also reset resultShown so the next game can show results again
+  resultShown = false;
 }
 function updateCountdown(state){
   const el = document.getElementById("countdownValue");
@@ -639,9 +850,9 @@ function updateCalledNumbers(state){
 
   calledNumbers = state.drawn_numbers;
 
-  // ✅ FIX: re-render arena instead
+  // 🔥 ONLY update called board (no full arena render)
   if(currentState.state === "playing"){
-    renderGameArena(currentState);
+    updateCalledBoard();
   }
 }
 function cardsChanged(newCards, oldCards) {
@@ -662,10 +873,15 @@ function cardsChanged(newCards, oldCards) {
 function updateCardSelection(state){
   const newCards = state.cards;
 
-   if(!cardsChanged(newCards, lastCards)) return;
+  const changed = cardsChanged(newCards, lastCards);
 
-   lastCards = [...newCards]; 
-  renderCardSelection(state);
+  if (changed) {
+    lastCards = [...newCards];
+    renderCardSelection(state);
+  }
+
+  // 🔥 ALWAYS update countdown (even if cards didn't change)
+  updateCountdown(state);
 }
 function updateGameArena(state){
   if(!myPickedCard) return;
