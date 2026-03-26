@@ -15,10 +15,6 @@ def get_room_state(room_id):
             "exists": False,
             "message": "Room not initialized"
         }), 404
-
-
-
-
     return jsonify({
         "room_id": room_id,
         "players": runtime.get("players", []),

@@ -14,6 +14,7 @@ let hasCalledBingo = false;
 let currentState = null;
 let resultShown = false;
 let ROOM_BET_AMOUNT = 0;
+let lastCards = {};
 const CARDS_PER_PAGE = 100;
 const LANG = {
   am: {
@@ -34,15 +35,7 @@ const LANG = {
     waiting: "መጠባበቅ",
     countdown_state: "መቆጠር",
     playing: "መጫወት",
-    ended: "ተጠናቋል",
-    win_title: "🎉 አሸናፊ ቢንጎ ",
-    win_message: "እንኳን ደስ አለዎት! ቢንጎ አግኝተዋል!",
-    no_bingo: " ቢንጎ የለም",
-    winning_cards: "የአሸናፊ ካርዶች",
-    house_win: "ማንም አልነሳም። ቤቱ አሸነፈ።",
-    already_called: "ቢንጎ አስቀድሞ ጠርተዋል!",
-    no_card_selected: "ካርድ አልተመረጠም",
-    network_error: "የኔትወርክ ችግር ተፈጥሯል"
+    ended: "ተጠናቋል"
   },
   en: {
     select_card: "Select Your Card",
@@ -62,15 +55,7 @@ const LANG = {
     waiting: "Waiting",
     countdown_state: "Countdown",
     playing: "Playing",
-    ended: "Ended",
-     win_title: "🎉 BINGO WINNER ",
-    win_message: "Congratulations! You hit BINGO!",
-    no_bingo: " No Bingo",
-    winning_cards: "Winning Cards",
-    house_win: "No winners. House takes the pot.",
-    already_called: "You already called BINGO!",
-  no_card_selected: "No card selected",
-  network_error: "Network error"
+    ended: "Ended"
   },
   or: {
     select_card: "Kaardii Filadhu",
@@ -90,23 +75,34 @@ const LANG = {
     waiting: "Eegaa jira",
     countdown_state: "Lakkoofsa",
     playing: "Taphachaa jira",
-    ended: "Xumurameera",
-      win_title: "🎉 BINGO Injifataa ",
-    win_message: "Baga gammaddan! BINGO argattan!",
-    no_bingo: " BINGO hin jiru",
-    winning_cards: "Kaardii Injifataa",
-    house_win: "Namni hin injifanne. Mana injifata.",
-    already_called: "BINGO duraan waamte!",
-  no_card_selected: "Kaardii hin filatamne",
-  network_error: "Rakkoo networkii"
+    ended: "Xumurameera"
   }
 };
 let currentLang = "am"; // default
+// Add this near the top of your JS, after all variables are defined
+document.addEventListener("click", (e) => {
+  if (e.target.classList.contains("card")) { 
+    const cardId = e.target.dataset.id;
+    if(cardId) selectCard(cardId);
+  }
+});
+function normalizeState(state) {
+  return {
+    ...state,
+    cards: state.cards || [],
+    drawn_numbers: state.drawn_numbers || [],
+    countdown: state.countdown || 0,
+    state: state.state || "waiting",
+    pot: state.pot || 0,
+    bet_amount: state.betAmount || state.bet_amount || 0
+  };
+}
 function t(key) {
   return LANG[currentLang][key] || key;
 }
 function setLang(lang) {
   currentLang = lang;
+  handleStateUpdate(currentState)
   
 }
 async function loadCards(){
@@ -115,32 +111,10 @@ async function loadCards(){
   cardIds = Object.keys(allCards);
 }
 
-loadCards();
+
 let selectedCards = new Set();
 
-async function fetchState() {
-  try {
-    const res = await fetch(`${API_BASE}/room/${ROOM_ID}/state`, {
-  headers: {
-    "ngrok-skip-browser-warning": "true"
-  }
-});
 
-    const text = await res.text();
-    console.log("RAW RESPONSE:", text);
-
-    try {
-      return JSON.parse(text);
-    } catch (e) {
-      console.error("❌ Not JSON:", text);
-      return null;
-    }
-
-  } catch (err) {
-    console.error("Fetch failed:", err);
-    return null;
-  }
-}
 
 // ------------------ UI RENDER ------------------
 function renderCardSelection(state){
@@ -156,7 +130,7 @@ function renderCardSelection(state){
 
   let html = `
   <h2>${t("select_card")}</h2>
-  <div>${t("countdown")}: ${state.countdown}</div>
+  <div>${t("countdown")}: <span id="countdownValue">${state.countdown}</span></div>
 
   <div class="cards">
   `;
@@ -173,10 +147,9 @@ else if(isPicked) className += " disabled";
 else if(selectedCard === cardId) className += " selected";
 
     html += `
-      <div class="${className}"
-        onclick="${(isPicked || myCard) ? '' : `selectCard('${cardId}')`}">
-        ${cardId.replace("card","")}
-      </div>
+     <div class="${className}" data-id="${cardId}">
+    ${cardId.replace("card","")}
+</div>
     `;
   });
 
@@ -186,16 +159,16 @@ else if(selectedCard === cardId) className += " selected";
  html += `
 <div style="margin-top:20px;text-align:center">
 
-<button class="nav-btn" onclick="prevPage()">
-  ⬅ ${t("previous")}
+<button onclick="prevPage()">
+  ${t("previous")}
 </button>
 
-<span style="margin:0 15px;font-weight:bold">
+<span style="margin:0 10px">
   Page ${currentPage + 1} / ${Math.ceil(cardIds.length / CARDS_PER_PAGE)}
 </span>
 
-<button class="nav-btn" onclick="nextPage()">
-  ${t("next")} ➡
+<button onclick="nextPage()">
+  ${t("next")}
 </button>
 
 </div>
@@ -243,17 +216,17 @@ function renderSelectedCardPreview(){
 
   if (myPickedCard) {
     html += `
-      <button onclick="cancelBet('${myPickedCard}')"
+      <button id ="cancelBetBtn"
         style="padding:10px 20px;background:red;color:white;border:none;border-radius:6px">
         ${t("cancel_bet")}
       </button>
     `;
   } else {
     html += `
-      <button onclick="placeBet('${selectedCard}','')"
-        style="padding:10px 20px;background:green;color:white;border:none;border-radius:6px">
+    <button id="placeBetBtn"style="padding:10px 20px;background:green;color:white;border:none;border-radius:6px">
         ${t("place_bet")}
       </button>
+        
     `;
   }
 
@@ -261,6 +234,7 @@ function renderSelectedCardPreview(){
   html += `</div>`;
 
   container.innerHTML = html;
+  attachPreviewEvents();
 }
 
 function renderGameArena(state){
@@ -268,6 +242,11 @@ function renderGameArena(state){
   const app = document.getElementById("app");
 
   const cardId = myPickedCard;
+
+  if (!cardId) {
+    document.getElementById("app").innerHTML = "<h2>Waiting for your card...</h2>";
+    return;
+  }
 
   if (!cardId || !allCards[cardId]) {
     app.innerHTML = `<h2>${t("no_card")}</h2>`;
@@ -284,61 +263,8 @@ function renderGameArena(state){
   let html = `<h2>${t("game_arena")}</h2>`;
 
   html += `<div class="arena scale-2x">`;
-
+  
   /* ---------------- PLAYER CARD ---------------- */
-
-  html += `<div class="player-card">`;
-
-  html += `
-  <div class="bingo-header">
-    <div>B</div>
-    <div>I</div>
-    <div>N</div>
-    <div>G</div>
-    <div>O</div>
-  </div>
-  `;
-
-  html += `<div class="bingo-grid">`;
-
-  numbers.forEach(n=>{
-
-    const isMarked = markedCells.has(n);
-
-    html+=`
-    <div 
-      class="bingo-cell ${isMarked ? "marked":""}"
-      onclick="toggleMark(${n})"
-    >
-      ${n===0 ? "★" : n}
-    </div>`;
-  });
-
-  html += `</div>`;
-
-/* ---- BINGO BUTTON ---- */
-
-html += `
-<div style="display:flex;justify-content:center;margin-top:10px">
-  <button 
-    onclick="callBingo([...markedCells])"
-    style="
-      padding:10px 20px;
-      font-weight:bold;
-      font-size:16px;
-      background:linear-gradient(135deg,#22c55e,#16a34a);
-      color:white;
-      border:none;
-      border-radius:8px;
-      cursor:pointer;
-      box-shadow:0 4px 10px rgba(0,0,0,0.3);
-    ">
-    ${t("bingo")}
-  </button>
-</div>
-`;
-
-html += `</div>`;
 
 
   /* ---------------- CALLED NUMBERS BOARD ---------------- */
@@ -425,10 +351,63 @@ for(let row=1; row<=15; row++){
 }
 
 html += `</div>`;
+  html += `</div>`;
+
+  html += `<div class="player-card">`;
+
+  html += `
+  <div class="bingo-header">
+    <div>B</div>
+    <div>I</div>
+    <div>N</div>
+    <div>G</div>
+    <div>O</div>
+  </div>
+  `;
+
+  html += `<div class="bingo-grid">`;
+
+  numbers.forEach(n=>{
+
+    const isMarked = markedCells.has(n);
+
+    html+=`
+    <div 
+      class="bingo-cell ${isMarked ? "marked":""}"
+      onclick="toggleMark(${n})"
+    >
+      ${n===0 ? "★" : n}
+    </div>`;
+  });
 
   html += `</div>`;
 
+/* ---- BINGO BUTTON ---- */
+
+html += `
+<div style="display:flex;justify-content:center;margin-top:10px">
+  <button id="callBingoBtn"
+    style="
+      padding:10px 20px;
+      font-weight:bold;
+      font-size:16px;
+      background:linear-gradient(135deg,#22c55e,#16a34a);
+      color:white;
+      border:none;
+      border-radius:8px;
+      cursor:pointer;
+      box-shadow:0 4px 10px rgba(0,0,0,0.3);
+    ">
+    ${t("bingo")}
+  </button>
+</div>
+`;
+
+html += `</div>`;
+
+
   app.innerHTML = html;
+attachArenaEvents();
 }
 async function renderGameInfo(state){
 
@@ -458,13 +437,13 @@ async function callBingo(pattern) {
 
   try {
     if (hasCalledBingo) {
-      showPopup(t("already_called"));
+      showPopup("You already called BINGO!");
       return;
     }
 
     const cardId = myPickedCard;
     if (!cardId) {
-      showPopup(t("no_card_selected"));
+      showPopup("No card selected");
       return;
     }
 
@@ -485,11 +464,12 @@ async function callBingo(pattern) {
       return;
     }
 
+    showPopup(data.message || "Bingo submitted!");
     hasCalledBingo = true;
 
   } catch (err) {
     console.error(err);
-    showPopup(t("network_error"));
+    showPopup("Network error");
   } 
 }
 async function placeBet(cardId,bet){
@@ -505,6 +485,11 @@ async function placeBet(cardId,bet){
 
   selectedCard = cardId;
   myPickedCard = cardId;
+  renderSelectedCardPreview();
+  if(currentState){
+  renderCardSelection(currentState);
+}  // ✅ ADD
+  
   
 }
 
@@ -520,6 +505,10 @@ async function cancelBet(cardId){
 
   selectedCard = null;
   myPickedCard = null;
+  renderSelectedCardPreview();  // ✅ ADD
+  if(currentState){
+  renderCardSelection(currentState);
+}
   
 }
 async function fetchUser() {
@@ -541,6 +530,30 @@ async function fetchUser() {
   } catch (err) {
     console.error("Error fetching user:", err);
     return null;
+  }
+}
+function attachPreviewEvents() {
+  const placeBtn = document.getElementById("placeBetBtn");
+  const cancelBtn = document.getElementById("cancelBetBtn");
+
+  if (placeBtn) {
+    placeBtn.addEventListener("click", () => {
+      placeBet(selectedCard);
+    });
+  }
+
+  if (cancelBtn) {
+    cancelBtn.addEventListener("click", () => {
+      cancelBet(myPickedCard);
+    });
+  }
+}
+function attachArenaEvents() {
+  const bingoBtn = document.getElementById("callBingoBtn");
+  if (bingoBtn) {
+    bingoBtn.addEventListener("click", () => {
+      callBingo([...markedCells]);
+    });
   }
 }
 // ------------------ POPUP ------------------
@@ -567,31 +580,94 @@ function nextPage(){
   const maxPage = Math.ceil(cardIds.length / CARDS_PER_PAGE) - 1;
   if(currentPage < maxPage){
     currentPage++;
-    
+    renderCardSelection(currentState);
   }
 }
 
 function prevPage(){
   if(currentPage > 0){
     currentPage--;
+    renderCardSelection(currentState);
     
   }
 }
 function selectCard(cardId){
   selectedCard = cardId;
+  renderSelectedCardPreview();
+  if(currentState){
+  renderCardSelection(currentState);
+}
   
 }
 function toggleMark(num){
-
-  
-
   if(markedCells.has(num)){
     markedCells.delete(num);
-  }else{
+  } else {
     markedCells.add(num);
   }
 
-  renderGameArena(currentState); // refresh UI
+  updateSingleCell(num);
+}
+function handleStateUpdate(state) {
+  const normalized = normalizeState(state);
+  currentState = normalized;
+
+  updateGameInfo(normalized);
+
+  const userCard = (normalized.cards || []).find(c => c[1] === USER_ID);
+  myPickedCard = userCard ? userCard[0] : null;
+  selectedCard = myPickedCard;
+
+  const roomState = normalized.state;
+
+  if (roomState === "waiting" || roomState === "countdown") {
+    renderCardSelection(normalized);
+    renderSelectedCardPreview();
+  } else {
+    renderGameArena(normalized);
+  }
+}
+function updateCountdown(state){
+  const el = document.getElementById("countdownValue");
+  if(el) el.innerText = state.countdown;
+}
+function updateCalledNumbers(state){
+  if(JSON.stringify(calledNumbers) === JSON.stringify(state.drawn_numbers)) return;
+
+  calledNumbers = state.drawn_numbers;
+
+  // ✅ FIX: re-render arena instead
+  if(currentState.state === "playing"){
+    renderGameArena(currentState);
+  }
+}
+function updateCardSelection(state){
+  const newCards = state.cards;
+
+  if(JSON.stringify(newCards) === JSON.stringify(lastCards)) return;
+
+  lastCards = newCards;
+  renderCardSelection(state);
+}
+function updateGameArena(state){
+  if(!myPickedCard) return;
+
+  renderGameArena(state);
+}
+let lastInfo = "";
+
+function updateGameInfo(state){
+  const newInfo = JSON.stringify({
+    players: state.cards?.length,
+    pot: state.pot,
+    bet: state.bet_amount,
+    state: state.state
+  });
+
+  if(newInfo === lastInfo) return;
+
+  lastInfo = newInfo;
+  renderGameInfo(state);
 }
 function getBingoColor(num){
 
@@ -606,122 +682,32 @@ function getBingoColor(num){
 
 // ------------------ MAIN LOOP ------------------
 let lastRoomState = null;
-async function updateUI() {
-  const state = await fetchState();
-  if (!state) return;
-  currentState = state;
-  renderGameInfo(state);    
-  if (state.state === "ended" && !resultShown) {
-
-  const winners = state.winners || [];
-  const winnerCards = state.winner_cards || [];
-
-  // ✅ CASE 1: USER IS WINNER
-  if (winners.includes(USER_ID)) {
-
-    let winAmount = 0;
-
-    if (state.pot && winners.length > 0) {
-      winAmount = (state.pot / winners.length).toFixed(2);
-    }
-
-    showPopupHTML(`
-    <div class="win-ui">
-      <div class="win-header">${t("win_title")}</div>
-
-      <div class="win-amount">+${winAmount}</div>
-
-      <div class="win-message">${t("win_message")}</div>
-
-      <div class="win-glow"></div>
-      <div class="win-confetti"></div>
-    </div>
-  `);
-  } 
-  // ❌ CASE 2: USER LOST
-  else if (winners.length > 0) {
-
-    let html = `<h3>${t("no_bingo")}</h3>`;
-    html += `<div>${t("winning_cards")}:</div>`;
-
-    winnerCards.forEach(w => {
-
-      const cardId = typeof w === "object" ? w.card_id : w;
-      const pattern = typeof w === "object" ? w.pattern : [];
-
-      const numbers = allCards[cardId];
-
-      if (!numbers) return;
-
-      html += `<div style="margin-top:10px">Card ${cardId}</div>`;
-      html += `<div style="display:grid;grid-template-columns:repeat(5,20px);gap:2px">`;
-
-      numbers.forEach(n => {
-
-        const isMarked = pattern.includes(n);
-
-        html += `
-          <div style="
-            width:20px;
-            height:20px;
-            font-size:10px;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            background:${isMarked ? "#22c55e" : "#ccc"};
-            color:black;
-          ">
-            ${n === 0 ? "★" : n}
-          </div>
-        `;
-      });
-
-      html += `</div>`;
-    });
-
-    showPopupHTML(html);
-
-  } 
-  // 😐 CASE 3: NO WINNER (house win)
-  else {
-    showPopup(t("house_win"));
-  }
-
-  resultShown = true;
-}
-  document.getElementById("countdown").innerText =
-    `${t("state")}: ${state.state}`;
-  ROOM_BET_AMOUNT = state.bet_amount || state.bet || 0;
-  calledNumbers = state.drawn_numbers || [];
-  // check if user already has a card
-  const myCardEntry = (state.cards || []).find(c => c[1] === USER_ID);
-  myPickedCard = myCardEntry ? myCardEntry[0] : null;
-  if (lastRoomState && lastRoomState !== "waiting" && state.state === "waiting") {
-    selectedCard = null;
-    myPickedCard = null;
-    selectedCards.clear();
-    hasCalledBingo = false;
-    markedCells.clear();
-    resultShown = false;
-  }
-  // if already picked → show preview automatically
-  if (myPickedCard) {
-    selectedCard = myPickedCard;
-  }
-
-  if (state.state === "waiting" || state.state === "countdown") {
-    renderCardSelection(state);
-    renderSelectedCardPreview();
-  } else {
-    renderGameArena(state);
-    const container = document.getElementById("selectedCardPreview");
-    container.innerHTML = "";
-  }
-  lastRoomState = state.state;
-}
 
 // Poll every 2 seconds
-setInterval(updateUI, 1000);
+let socket;
 
-// Initial load
-updateUI();
+function initSocket() {
+  socket = io("https://cicely-pedodontic-nonnegligibly.ngrok-free.dev", {
+    transports: ["websocket"],
+  });
+
+  socket.on("connect", () => {
+    console.log("✅ Connected:", socket.id);
+    socket.emit("join_room", { room_id: ROOM_ID }); // join immediately
+  });
+
+  socket.on("state_update", (state) => {
+    handleStateUpdate(state);    
+    console.log("📡 FRONTEND RECEIVED STATE_UPDATE:", state);
+  });
+
+  socket.on("disconnect", (reason) => {
+    console.log("❌ Disconnected:", reason);
+  });
+}
+async function startApp() {
+  await loadCards();   // 🔥 REQUIRED
+  initSocket();        // start socket AFTER cards loaded
+}
+
+startApp();
