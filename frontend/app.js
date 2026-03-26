@@ -697,7 +697,7 @@ function initSocket() {
     socket.emit("join_room", { room_id: ROOM_ID }); // join immediately
   });
 
-  socket.on("state_update", (state) => {
+  socket.on("states_update", (state) => {
     handleStateUpdate(state);    
     console.log("📡 FRONTEND RECEIVED STATE_UPDATE:", state);
   });
