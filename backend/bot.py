@@ -75,7 +75,11 @@ TEXT = {
         "not_eligible" : "Maallaqa baasuuf ulaagaa hin guutu",
     }
 }
-
+ROOM_NAMES = {
+    "en": {"room0": "Room One", "room1": "Room Two", "room2": "Room Three", "room3": "Room Four"},
+    "am": {"room0": "ክፍል አንድ", "room1": "ክፍል ሁለት", "room2": "ክፍል ሶስት", "room3": "ክፍል አራት"},
+    "om": {"room0": "Kutaa Tokko", "room1": "Kutaa Lama", "room2": "Kutaa Sadii", "room3": "Kutaa Afur"}
+}
 # ---------------- START ----------------
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -101,25 +105,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ---------------- LANGUAGE ----------------
 
 async def language_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
     query = update.callback_query
     await query.answer()
 
-    lang = query.data.split("_")[1]
-
+    lang = query.data.split("_")[1]  # 'en', 'am', 'om'
     context.user_data["lang"] = lang
 
-    contact_btn = KeyboardButton("Share Contact", request_contact=True)
+    # Update in database
+    uid = str(query.from_user.id)
+    update_user_lang(uid, lang)
 
-    await query.message.reply_text(
-        TEXT["en"]["welcome"],
-        reply_markup=ReplyKeyboardMarkup(
-            [[contact_btn]],
-            resize_keyboard=True
-        )
-    )
-
-
+    # Show main menu in selected language
+    await main_menu(update, context, lang=lang)
 # ---------------- CONTACT REGISTRATION ----------------
 
 async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -146,22 +143,27 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ---------------- MAIN MENU ----------------
 
-async def main_menu(update: Update):
+async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, lang=None):
+    if not lang:
+        lang = context.user_data.get("lang", "am")  # fallback to stored language
 
+    # Determine chat_id depending on message or callback
+    if hasattr(update, "callback_query") and update.callback_query:
+        chat_id = update.callback_query.from_user.id
+    else:
+        chat_id = update.message.chat.id
+
+    # Localized buttons
     keyboard = [
-        ["Deposit", "Withdraw"],
-        ["Play Game"]
+        [TEXT[lang]["deposit"], TEXT[lang]["withdraw"]],
+        [TEXT[lang]["play"], "Change Language"]
     ]
 
-    await update.message.reply_text(
-        "Menu",
-        reply_markup=ReplyKeyboardMarkup(
-            keyboard,
-            resize_keyboard=True
-        )
+    await context.bot.send_message(
+        chat_id,
+        TEXT[lang].get("menu_text", "Menu"),
+        reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     )
-
-
 
 # ---------------- RECEIPT CHECK ----------------
 
@@ -318,21 +320,33 @@ async def admin_actions(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ---------------- LANGUAGE CHANGE ----------------
 
+# ---------------- LANGUAGE CHANGE ----------------
 async def change_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
+    """Show language selection for the user"""
     keyboard = [
         [InlineKeyboardButton("English", callback_data="lang_en")],
         [InlineKeyboardButton("አማርኛ", callback_data="lang_am")],
-        [InlineKeyboardButton("Afaan Oromo", callback_data="lang_or")]
+        [InlineKeyboardButton("Afaan Oromo", callback_data="lang_om")]
     ]
 
-    await update.message.reply_text(
-        "Choose Language",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    # Use a callback query if coming from a button, otherwise message
+    if update.message:
+        await update.message.reply_text(
+            "Choose Language / ቋንቋ ይምረጡ / Afaan filadhaa",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    elif update.callback_query:
+        query = update.callback_query
+        await query.message.reply_text(
+            "Choose Language / ቋንቋ ይምረጡ / Afaan filadhaa",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
 async def show_rooms(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    rooms = get_available_rooms()
+    uid = update.effective_user.id
+    lang = await get_user_lang(uid)
+    context.user_data["lang"] = lang
+    import worker
+    rooms = worker.load_runtime()
 
     if not rooms:
         await update.message.reply_text("No rooms available right now.")
@@ -340,17 +354,21 @@ async def show_rooms(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = []
 
-    for room in rooms:
-        text = f"{room['name']} | {room['bet']} ETB | {room['players']}/{room['max']}"
+    for room_id, room_data in rooms.items():
+        localized_name = ROOM_NAMES.get(lang, {}).get(room_id, room_id)
+        bet = room_data.get("betAmount", 0)
+        players_count = len(room_data.get("players", []))
+        # If you have a max players field, use it, otherwise just show current players
+        text = f"{localized_name} | {bet} ETB | {players_count} players"
         keyboard.append([
             InlineKeyboardButton(
                 text,
-                callback_data=f"room_{room['id']}"
+                callback_data=f"room_{room_id}"
             )
         ])
 
     await update.message.reply_text(
-        "Select a room:",
+        TEXT[lang]["play"],  # localized "Play Game"
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 async def room_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -386,6 +404,7 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("changelanguage", change_language))
 
+    # already in your main()
     app.add_handler(CallbackQueryHandler(language_selected, pattern="lang_"))
     app.add_handler(CallbackQueryHandler(admin_actions, pattern="approve_|deny_"))
 
@@ -394,25 +413,45 @@ def main():
     
     # Deposit amount messages (numbers) → receipt_handler
     deposit_conv = ConversationHandler(
-        entry_points=[MessageHandler(filters.Regex("^Deposit$"), start_deposit)],
+        entry_points=[
+            MessageHandler(
+                filters.Regex(
+                    f"^({'|'.join([TEXT[lang]['deposit'] for lang in TEXT])})$"
+                ),
+                start_deposit
+            )
+        ],
         states={
             CHOOSING_DEPOSIT_AMOUNT: [CallbackQueryHandler(deposit_amount_chosen, pattern="^dep_")],
             WAITING_DEPOSIT_RECEIPT: [MessageHandler(filters.TEXT & ~filters.COMMAND, deposit_receipt_received)]
         },
         fallbacks=[CommandHandler("cancel", cancel)]
     )
-
     # Conversation for Withdraw
     withdraw_conv = ConversationHandler(
-        entry_points=[MessageHandler(filters.Regex("^Withdraw$"), start_withdraw)],
-        states={
-            WAITING_WITHDRAW_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, withdraw_amount_received)]
-        },
+        entry_points=[
+            MessageHandler(
+                filters.Regex(f"^({'|'.join([TEXT[lang]['withdraw'] for lang in TEXT])})$"),
+                start_withdraw
+            )
+        ],
+        states={WAITING_WITHDRAW_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, withdraw_amount_received)]},
         fallbacks=[CommandHandler("cancel", cancel)]
     )
     app.add_handler(deposit_conv)
     app.add_handler(withdraw_conv)
-    app.add_handler(MessageHandler(filters.Regex("^Play Game$"), show_rooms))
+    app.add_handler(
+        MessageHandler(
+            filters.Regex(f"^({'|'.join([TEXT[lang]['play'] for lang in TEXT])})$"),
+            show_rooms
+        )
+    )
+    app.add_handler(
+        MessageHandler(
+            filters.Regex(f"^({'|'.join([TEXT[lang].get('change_lang', 'Change Language') for lang in TEXT])})$"),
+            change_language
+        )
+    )
     app.add_handler(CallbackQueryHandler(room_selected, pattern="^room_"))
     print("Bot Running...")
 

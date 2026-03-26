@@ -1,67 +1,43 @@
 import time
 import json
 from util import *
-ROOM_RUNTIME = {
-        "room0" :{
-            "players": [],
-            "cards": {},
-            "pot": 0,
-            "betAmount":10,
-            "state":"waiting",
-            "drawn_numbers": [],
-            "bingo_locked": False,
-            "drawing_stopped": False,
-        },
-        "room1" :{
-            "players": [],
-            "cards": {},
-            "pot": 0,
-            "betAmount":20,
-            "state":"waiting",
-            "drawn_numbers": [],
-            "bingo_locked": False,
-            "drawing_stopped": False,
-        },
-        "room2" :{
-            "players": [],
-            "cards": {},
-            "pot": 0,
-            "betAmount":50,
-            "state":"waiting",
-            "drawn_numbers": [],
-            "bingo_locked": False,
-            "drawing_stopped": False,
-        },
-        "room3" :{
-            "players": [],
-            "cards": {},
-            "pot": 0,
-            "betAmount":100,
-            "state":"waiting",
-            "drawn_numbers": [],
-            "bingo_locked": False,
-            "drawing_stopped": False,
-        },
 
-}
-
+RUNTIME_FILE = "runtime.json"
+def load_runtime():
+    global ROOM_RUNTIME
+    try:
+        with open(RUNTIME_FILE, "r") as f:
+            ROOM_RUNTIME = json.load(f)
+            return ROOM_RUNTIME
+            print("Runtime loaded")
+    except:
+        print("No runtime file, using default")
+def save_runtime():
+    with open(RUNTIME_FILE, "w") as f:
+        json.dump(ROOM_RUNTIME, f)
+ROOM_RUNTIME = load_runtime()
 # Load available cards from cards.json
 with open("cards.json", "r") as f:
     AVAILABLE_CARDS = json.load(f)
-def game_worker():
+def game_worker(socketio):
     print("Game worker started...")
 
     while True:
         try:
-            process_rooms()
+            process_rooms(socketio)
         except Exception as e:
             print("Worker error:", e)
 
-        time.sleep(0.3)
+        socketio.sleep(0.3)
 
-def process_rooms():
+
+def broadcast_room(socketio, room_id):
+    from server import build_room_state
+    state = build_room_state(room_id)
+    print("emitted")
+    socketio.emit("state_update", state, room=room_id)
+def process_rooms(socketio):
     rooms = ROOM_RUNTIME
-
     if not rooms:
         return
 
@@ -71,125 +47,127 @@ def process_rooms():
         state = room.get("state")
 
         if state == "waiting":
-            handle_waiting(room_id)
+            changed = handle_waiting(room_id)
+            if changed:
+                
+                broadcast_room(socketio, room_id)
 
         elif state == "countdown":
             handle_countdown(room_id)
-
+            broadcast_room(socketio, room_id)  # 🔥 ALWAYS EMIT
         elif state == "playing":
             handle_playing(room_id)
-
+            broadcast_room(socketio, room_id)
+                    
         elif state == "ended":
-            handle_ended(room_id)
+            changed = handle_ended(room_id)
+            if changed:
+                broadcast_room(socketio, room_id)
+    
+    save_runtime()
+         
 
 def handle_waiting(room_id):
     runtime = ROOM_RUNTIME.get(room_id)
-
     if not runtime:
-        return
+        return False
 
     players = runtime.get("players", [])
 
     if len(players) >= 2:
-        print(f"{room_id} → countdown")
         runtime["state"] = "countdown"
         runtime["countdown"] = 30
         runtime["state_started_at"] = time.time()
+        return True
 
-        
-
+    return False
 def handle_countdown(room_id):
     runtime = ROOM_RUNTIME.get(room_id)
     if not runtime:
-        return
+        return False
+
+    prev = runtime.get("countdown", 0)
 
     elapsed = time.time() - runtime["state_started_at"]
     remaining = 30 - int(elapsed)
 
     runtime["countdown"] = max(remaining, 0)
 
+    # countdown changed
+    if runtime["countdown"] != prev:
+        return True
 
     if remaining <= 0:
+        runtime["state"] = "playing"
+        runtime["drawn_numbers"] = []
+        runtime["last_draw_time"] = time.time()
 
-        print(f"{room_id} → playing")
-
+        # pot calculation...
         cards = runtime.get("cards", {})
-
-        
-        bet = 10
+        bet = runtime.get("betAmount", 0)
 
         player_cards = {}
-
-        # count cards per player
         for card in cards.values():
             uid = card["player_id"]
             player_cards[uid] = player_cards.get(uid, 0) + 1
 
         total_cards = 0
-
         for uid, count in player_cards.items():
-
-
             deduct_user_balance(uid, bet)
-
             increment_games_played(uid)
-
             total_cards += count
 
         runtime["pot"] = total_cards * bet * 0.8
-        runtime["state"] = "playing"
-        runtime["drawn_numbers"] = []
-        runtime["last_draw_time"] = time.time()
 
+        return True
+
+    return False
 def handle_playing(room_id):
-
     runtime = ROOM_RUNTIME.get(room_id)
     if not runtime:
-        return
+        return False
+
     if runtime.get("bingo_locked"):
         now = time.time()
-
         if now - runtime.get("bingo_time", 0) > 1.0:
-            print(f"{room_id} → ending (bingo window closed)")
             end_game(room_id)
-            return
+            return True
+
     if runtime.get("drawing_stopped"):
-        return
+        return False
 
     now = time.time()
 
     if now - runtime["last_draw_time"] < 2:
-        return
+        return False
 
     number = draw_number(runtime)
 
     if number is None:
         end_game(room_id)
-        return
+        return True
 
     runtime["drawn_numbers"].append(number)
     runtime["last_draw_time"] = now
 
-
+    return True  # 🔥 NEW NUMBER → BROADCAST
 def handle_ended(room_id):
     runtime = ROOM_RUNTIME.get(room_id)
     if not runtime:
-        return
+        return False
 
     elapsed = time.time() - runtime["state_started_at"]
 
     if elapsed < 5:
-        return
+        return False
+
     winners = runtime.get("winners", [])
+
     if winners:
-        # ✅ Pay players
         process_payout(room_id)
     else:
-        # ✅ Send to company
         process_house_payout(room_id, runtime)
-    
 
-    # reset runtime
     runtime.update({
         "state": "waiting",
         "players": [],
@@ -204,7 +182,9 @@ def handle_ended(room_id):
         "house_payout_done": False,
         "countdown": 0
     })
-#------------------------------------------------------------------------------------------------------
+
+    return True
+#----------------------------------------------------------------------------------------------
 import random
 
 def draw_number(runtime):
@@ -218,7 +198,7 @@ def draw_number(runtime):
 
     return random.choice(remaining)
 def bingo_called(room_id, card_id, pattern_numbers,player_id):
-
+    
     runtime = ROOM_RUNTIME.get(room_id)
     if not runtime:
         print("no room")
@@ -289,7 +269,6 @@ def bingo_called(room_id, card_id, pattern_numbers,player_id):
                 "card_id": card_id,
                 "pattern": pattern_numbers,
             })
-
         return True
 
     return False
@@ -347,7 +326,7 @@ def check_winning_pattern(card, pattern):
     return False
 
 def end_game(room_id):
-
+    
     runtime = ROOM_RUNTIME.get(room_id)
     if not runtime:
         return
@@ -358,6 +337,7 @@ def end_game(room_id):
 
 def process_payout(room_id):
     runtime = ROOM_RUNTIME.get(room_id)
+    
     if not runtime:
         return
     if runtime.get("payout_done"):
@@ -476,6 +456,7 @@ def pick_card(room_id, user_id, card_id,bet_amount):
     """
     Assign a card to a player in a room with validation.
     """
+    
     # 1️⃣ Check if card exists in available cards
     if card_id not in AVAILABLE_CARDS:
         print(f"Card {card_id} does not exist in cards.json")
@@ -530,6 +511,7 @@ def unpick_card(room_id, user_id, card_id):
     user_id: str, the player ID
     card_id: str, the card ID to remove
     """
+    
     runtime = ROOM_RUNTIME.get(room_id)
 
     if not runtime:

@@ -27,8 +27,12 @@ def get_user(uid):
 async def get_user_lang(uid):
     """Helper to fetch user language from Firebase"""
     user = get_user(str(uid))
-    return user.get("lang", "en") if user else "en"
-
+    return user.get("lang", "en") if user else "am"
+def update_user_lang(uid: str, lang: str):
+    """Update the user's preferred language in the database (rdtbs)"""
+    user_ref = db.reference(f"users/{uid}")
+    if user_ref.get():
+        user_ref.update({"lang": lang})
 def create_user(user, phone, lang):
 
     uid = str(user.id)
@@ -75,7 +79,6 @@ def get_available_rooms():
 
     for room_id, room in rooms_data.items():
 
-        # شروط اختيار الغرف (you can adjust)
         if (
             room.get("status") == "active" and
             room.get("gameStatus") == "waiting" and
