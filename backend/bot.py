@@ -12,7 +12,6 @@ from telegram.ext import (
 )
 from  util import *
 
-import datetime
 import os
 from dotenv import load_dotenv
 load_dotenv()

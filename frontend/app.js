@@ -402,84 +402,53 @@ async function renderGameInfo(state){
 }
 // ------------------ ACTIONS ------------------
 
-async function callBingo(pattern) {
+function callBingo(pattern) {
 
+  if (hasCalledBingo) {
+    showPopup("You already called BINGO!");
+    return;
+  }
 
-  try {
-    if (hasCalledBingo) {
-      showPopup("You already called BINGO!");
-      return;
-    }
+  if (!myPickedCard) {
+    showPopup("No card selected");
+    return;
+  }
 
-    const cardId = myPickedCard;
-    if (!cardId) {
-      showPopup("No card selected");
-      return;
-    }
-
-    const res = await fetch(`${API_BASE}/room/${ROOM_ID}/bingo`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_id: USER_ID,
-        card_id: cardId,
-        pattern: pattern
-      })
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      showPopup(data.error || "Bingo failed");
-      return;
-    }
-
-    showPopup(data.message || "Bingo submitted!");
-    hasCalledBingo = true;
-
-  } catch (err) {
-    console.error(err);
-    showPopup("Network error");
-  } 
-}
-async function placeBet(cardId,bet){
-  await fetch(`${API_BASE}/room/${ROOM_ID}/pick`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      user_id: USER_ID,
-      card_id: cardId,
-      bet_amount: ROOM_BET_AMOUNT
-    })
+  socket.emit("bingo", {
+    room_id: ROOM_ID,
+    user_id: USER_ID,
+    card_id: myPickedCard,
+    pattern: pattern
   });
 
-  selectedCard = cardId;
-  myPickedCard = cardId;
+  hasCalledBingo = true;
+}
+function placeBet(cardId) {
+  socket.emit("pick", {
+    room_id: ROOM_ID,
+    user_id: USER_ID,
+    card_id: cardId,
+    bet_amount: ROOM_BET_AMOUNT
+  });
+
+ 
+
   renderSelectedCardPreview();
-  if(currentState){
-  renderCardSelection(currentState);
-}  // ✅ ADD
-  
-  
+  if (currentState) renderCardSelection(currentState);
 }
 
-async function cancelBet(cardId){
-  await fetch(`${API_BASE}/room/${ROOM_ID}/unpick`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      user_id: USER_ID,
-      card_id: cardId
-    })
+function cancelBet(cardId) {
+  socket.emit("unpick", {
+    room_id: ROOM_ID,
+    user_id: USER_ID,
+    card_id: cardId
   });
 
   selectedCard = null;
   myPickedCard = null;
-  renderSelectedCardPreview();  // ✅ ADD
-  if(currentState){
-  renderCardSelection(currentState);
-}
-  
+
+  renderSelectedCardPreview();
+  if (currentState) renderCardSelection(currentState);
 }
 async function fetchUser() {
   try {
@@ -715,12 +684,25 @@ function prevPage(){
     
   }
 }
-function selectCard(cardId){
+function selectCard(cardId) {
+  if (selectedCard === cardId) return; // no change
+
+  // remove previous selection highlight
+  if (selectedCard) {
+    const prev = document.querySelector(`.card[data-id="${selectedCard}"]`);
+    if (prev) prev.classList.remove("selected");
+  }
+
+  // set new selected card
   selectedCard = cardId;
+
+  // add highlight to new selection
+  const current = document.querySelector(`.card[data-id="${selectedCard}"]`);
+  if (current) current.classList.add("selected");
+
+  // update preview
   renderSelectedCardPreview();
-  if(currentState){
-  renderCardSelection(currentState);
-}
+
   
 }
 function toggleMark(num){
@@ -745,10 +727,10 @@ function updateSingleCell(num){
 function handleStateUpdate(state) {
   const normalized = normalizeState(state);
   currentState = normalized;
-
+  ROOM_BET_AMOUNT = normalized.bet_amount || 0;
   // 🔥 ALWAYS update core info
   updateGameInfo(normalized);
-
+  
   // 🔥 detect my card
   const userCard = (normalized.cards || []).find(c => c[1] === USER_ID);
   myPickedCard = userCard ? userCard[0] : null;
@@ -934,10 +916,22 @@ function initSocket() {
     handleStateUpdate(state);    
     console.log("📡 FRONTEND RECEIVED STATE_UPDATE:", state);
   });
+  socket.on("pick_result", (data) => {
+    if (!data.success) showPopup("Pick failed");
+  });
+
+  socket.on("unpick_result", (data) => {
+    if (!data.success) showPopup("Unpick failed");
+  });
+
+  socket.on("bingo_result", (data) => {
+    if (!data.success) showPopup("Bingo failed");
+  });
 
   socket.on("disconnect", (reason) => {
     console.log("❌ Disconnected:", reason);
   });
+
 }
 async function startApp() {
   await loadCards();   // 🔥 REQUIRED
