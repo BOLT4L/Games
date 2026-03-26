@@ -621,11 +621,13 @@ function handleStateUpdate(state) {
 
   const roomState = normalized.state;
 
+  // 🔥 ALWAYS update cards when in selection phase
   if (roomState === "waiting" || roomState === "countdown") {
-    renderCardSelection(normalized);
+    updateCardSelection(normalized);   // 🔥 USE THIS
     renderSelectedCardPreview();
   } else {
-    renderGameArena(normalized);
+    updateCalledNumbers(normalized);
+    updateGameArena(normalized);
   }
 }
 function updateCountdown(state){
@@ -642,12 +644,27 @@ function updateCalledNumbers(state){
     renderGameArena(currentState);
   }
 }
+function cardsChanged(newCards, oldCards) {
+  if (!oldCards) return true;
+  if (newCards.length !== oldCards.length) return true;
+
+  const setA = new Set(newCards.map(c => c[0] + "-" + c[1]));
+  const setB = new Set(oldCards.map(c => c[0] + "-" + c[1]));
+
+  if (setA.size !== setB.size) return true;
+
+  for (let item of setA) {
+    if (!setB.has(item)) return true;
+  }
+
+  return false;
+}
 function updateCardSelection(state){
   const newCards = state.cards;
 
-  if(JSON.stringify(newCards) === JSON.stringify(lastCards)) return;
+   if(!cardsChanged(newCards, lastCards)) return;
 
-  lastCards = newCards;
+   lastCards = [...newCards]; 
   renderCardSelection(state);
 }
 function updateGameArena(state){
