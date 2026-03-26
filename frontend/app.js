@@ -102,6 +102,7 @@ function t(key) {
 }
 function setLang(lang) {
   currentLang = lang;
+  updateGameInfo(currentState)
   handleStateUpdate(currentState)
   
 }
