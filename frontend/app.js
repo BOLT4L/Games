@@ -545,7 +545,7 @@ function showWinnerPopup(winnerCard) {
 
   setTimeout(() => { popup.style.display = "none"; }, 7000);
 }
-showLoserPopup(winner_cards); {
+function showLoserPopup(winnerCards) {
   const popup = document.getElementById("popup");
 
   let html = `
@@ -799,7 +799,7 @@ function handleStateUpdate(state) {
       showWinnerPopup(myWinnerCard);
       } else {
         // ❌ Current user lost
-        showLoserPopup(normalized.winner_cards);
+       showLoserPopup(normalized.winner_cards);
       }
     }
     lastRoomState = roomState;
