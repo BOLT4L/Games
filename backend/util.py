@@ -52,7 +52,37 @@ def create_user(user, phone, lang):
         "updatedAt": now,
         "username": user.username
     })
+from firebase_admin import db
+from datetime import datetime
+import uuid
 
+
+def add_deposit(uid, amount, status="approved"):
+    """
+    Create a deposit record in Firebase.
+    """
+
+    if not amount or float(amount) <= 0:
+        return False, "Invalid deposit amount."
+
+    deposit_id = str(uuid.uuid4())
+
+    deposit_data = {
+        "id": deposit_id,
+        "userId": str(uid),
+        "amount": float(amount),
+        "status": status,  # "pending", "approved", "rejected"
+        "date": datetime.utcnow().isoformat()
+    }
+
+    try:
+        ref = db.reference(f"deposits/{deposit_id}")
+        ref.set(deposit_data)
+
+        return True, deposit_data
+
+    except Exception as e:
+        return False, str(e)
 
 def update_balance(uid, amount):
 
@@ -60,14 +90,124 @@ def update_balance(uid, amount):
 
     if not user:
         return
-
+    
     new_balance = user.get("balance", 0) + amount
 
     users_ref.child(uid).update({
         "balance": new_balance,
         "updatedAt": datetime.datetime.utcnow().isoformat()
     })
+    if amount > 0 :
+        add_deposit(uid,amount)
 
+
+def parse_date(date_str):
+    """Safely parse ISO date strings"""
+    try:
+        return datetime.fromisoformat(date_str)
+    except Exception:
+        return None
+
+
+def check_withdraw_eligibility(uid,amount):
+    # ===========================================
+    # 🔍 STEP 1: Get ALL deposits for user
+    # ===========================================
+    deps_ref = db.reference("deposits")
+    deps = deps_ref.get()
+
+    if not deps:
+        return False, "❌ You must deposit at least once before withdrawing."
+
+    user_deposits = [
+        d for d in deps.values()
+        if str(d.get("userId")) == str(uid)
+    ]
+
+    if len(user_deposits) == 0:
+        return False, "❌ You must deposit at least once before withdrawing."
+
+    # ===========================================
+    # 🔍 STEP 2: Find last deposit date
+    # ===========================================
+    valid_deposits = [
+        d for d in user_deposits if d.get("date")
+    ]
+
+    if not valid_deposits:
+        return False, "❌ Invalid deposit data."
+
+    last_deposit = sorted(
+        valid_deposits,
+        key=lambda x: parse_date(x["date"]) or datetime.min,
+        reverse=True
+    )[0]
+
+    last_deposit_date = parse_date(last_deposit["date"])
+    if not last_deposit_date:
+        return False, "❌ Invalid deposit date."
+
+    # ===========================================
+    # 🔍 STEP 3: Get user lastWinDate
+    # ===========================================
+    user_ref = db.reference(f"users/{uid}")
+    user = user_ref.get()
+
+    if not user or not user.get("lastWinDate"):
+        return False, "❌ You must win at least one game before withdrawing."
+    try:
+        amount = int(amount)  
+    except:
+        return False,
+    if amount > user.get("balance"):
+        return False, "❌ You donot have enough amount."
+    last_win_date = parse_date(user["lastWinDate"])
+    if not last_win_date:
+        return False, "❌ Invalid win date."
+
+
+    return True, None
+import re
+def extract_url_from_text(text):
+    """
+    Extract valid receipt URL from text.
+    Supports:
+    - Ethiotelecom receipts
+    - CBE receipts
+    """
+    pattern = r"https:\/\/(?:transactioninfo\.ethiotelecom\.et\/receipt\/[A-Z0-9]+|apps\.cbe\.com\.et:100\/\?id=[A-Z0-9]+)"
+    
+    match = re.search(pattern, text, re.IGNORECASE)
+    return match.group(0) if match else None
+
+
+def check_receipt_stub(text):
+    """
+    Validate receipt:
+    1. Extract URL
+    2. Check if already used
+    """
+
+    # ===========================================
+    # 🔍 STEP 1: Extract URL
+    # ===========================================
+    url = extract_url_from_text(text)
+
+    if not url:
+        return False, "❌ No valid receipt link found."
+
+    # ===========================================
+    # 🔍 STEP 2: Check duplicates
+    # ===========================================
+    deposits_ref = db.reference("deposits")
+    deposits = deposits_ref.get()
+
+    if deposits:
+        for d in deposits.values():
+            if d.get("url") == url:
+                return False, "❌ This receipt has already been used."
+
+    return True, url
 #---------------------------------------
 def get_available_rooms():
     rooms_data = rooms_ref.get()

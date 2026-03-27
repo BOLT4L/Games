@@ -2,3 +2,4 @@
 /env
 firebase_key.json
 .qodo
+/node_modules

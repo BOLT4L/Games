@@ -442,6 +442,7 @@ def reward_user(user_id, amount):
 
         user["balance"] = user.get("balance",0) + amount
         user["gamesWon"] = user.get("gamesWon",0) + 1
+        user["lastWinDate"] = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
         user["totalWinnings"] = user.get("totalWinnings",0) + amount
 
         return user
@@ -475,9 +476,12 @@ def pick_card(room_id, user_id, card_id,bet_amount):
         return False
     # 3️⃣ Initialize room runtime if missing
    
-    
 
     runtime = ROOM_RUNTIME[room_id]
+    room_state = runtime.get("state", "waiting")
+    if room_state not in ["waiting", "countdown"]:
+        print(f"Cannot pick card in state: {room_state}")
+        return False
 
     # 4️⃣ Check if user already has a card in this room
     for c_id, c_data in runtime["cards"].items():

@@ -83,24 +83,23 @@ ROOM_NAMES = {
 # ---------------- START ----------------
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
     uid = str(update.effective_user.id)
 
-    user = get_user(uid)
+    try:
+        user = get_user(uid)
+    except Exception as e:
+        print(f"Error fetching user: {e}")
+        user = None
 
     if user:
-        await main_menu(update)
+        await main_menu(update, context)
         return
 
-    keyboard = [
-        [InlineKeyboardButton("English", callback_data="lang_en")]
-    ]
-
+    keyboard = [[InlineKeyboardButton("English", callback_data="lang_en")]]
     await update.message.reply_text(
         "Choose Language",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-
 
 # ---------------- LANGUAGE ----------------
 
@@ -141,6 +140,28 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await main_menu(update)
 
+async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    uid = update.effective_user.id
+
+    lang = await get_user_lang(uid)
+    context.user_data["lang"] = lang
+
+    if text == TEXT[lang]["deposit"]:
+        return await start_deposit(update, context)
+
+    elif text == TEXT[lang]["withdraw"]:
+        return await start_withdraw(update, context)
+
+    elif text == TEXT[lang]["play"]:
+        return await show_rooms(update, context)
+
+    elif text in ["Change Language", TEXT[lang].get("change_lang", "")]:
+        return await change_language(update, context)
+
+    else:
+        await update.message.reply_text("Unknown option.")
+
 # ---------------- MAIN MENU ----------------
 
 async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, lang=None):
@@ -166,9 +187,16 @@ async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, lang=Non
     )
 
 # ---------------- RECEIPT CHECK ----------------
+async def cancel_process(update, context, message):
+    await update.message.reply_text(message)
 
-def check_receipt_stub(text):
-    return True
+    # clear temporary data
+    context.user_data.pop("temp_deposit_amount", None)
+
+    # go back to menu
+    await main_menu(update, context)
+
+    return ConversationHandler.END
 
 async def start_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Triggered by 'Deposit' button or /deposit command"""
@@ -204,9 +232,10 @@ async def deposit_receipt_received(update: Update, context: ContextTypes.DEFAULT
     amount = context.user_data.get("temp_deposit_amount")
     receipt = update.message.text or "Image/File sent"
     lang = context.user_data.get("lang", "en")
-    if not check_receipt_stub(receipt):
-        await update.message.reply_text("Receipt invalid")
-        return
+    is_valid, result = check_receipt_stub(receipt)
+    url = result
+    if not is_valid:
+        return await cancel_process(update, context, result)
 
     keyboard = [[
         InlineKeyboardButton(
@@ -222,7 +251,7 @@ async def deposit_receipt_received(update: Update, context: ContextTypes.DEFAULT
     for admin in ADMIN_IDS:
         await context.bot.send_message(
             admin,
-            f"Deposit request\nUser:{uid}\nAmount:{amount}\nReceipt:{receipt}",
+            f"Deposit request\nUser:{uid}\nAmount:{amount}\nReceipt:{receipt}\nURL:{url}",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
@@ -230,9 +259,6 @@ async def deposit_receipt_received(update: Update, context: ContextTypes.DEFAULT
     return ConversationHandler.END
 
 # ---------------- WITHDRAW ----------------
-
-def check_withdraw_eligibility(uid):
-    return True
 async def start_withdraw(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     lang = await get_user_lang(uid)
@@ -245,12 +271,14 @@ async def withdraw_amount_received(update: Update, context: ContextTypes.DEFAULT
     uid = str(update.effective_user.id)
     lang = context.user_data.get("lang", "en")
     if not amount.isdigit():
-        await update.message.reply_text("Please enter a valid number.")
-        return WAITING_WITHDRAW_AMOUNT
+        return await cancel_process(update, context, "❌ Invalid amount.")
+    import util
     
-    if not check_withdraw_eligibility(uid):
-        await update.message.reply_text("Not eligible for withdraw")
-        return
+
+    is_ok, msg = check_withdraw_eligibility(uid, amount)
+
+    if not is_ok:
+        return await cancel_process(update, context, msg)
 
     keyboard = [[
         InlineKeyboardButton(
@@ -407,51 +435,32 @@ def main():
     # already in your main()
     app.add_handler(CallbackQueryHandler(language_selected, pattern="lang_"))
     app.add_handler(CallbackQueryHandler(admin_actions, pattern="approve_|deny_"))
-
-    app.add_handler(MessageHandler(filters.CONTACT, contact_handler))
-
     
-    # Deposit amount messages (numbers) → receipt_handler
     deposit_conv = ConversationHandler(
-        entry_points=[
-            MessageHandler(
-                filters.Regex(
-                    f"^({'|'.join([TEXT[lang]['deposit'] for lang in TEXT])})$"
-                ),
-                start_deposit
-            )
-        ],
+        entry_points=[MessageHandler(filters.TEXT & filters.Regex("^Deposit$"), start_deposit)],
         states={
-            CHOOSING_DEPOSIT_AMOUNT: [CallbackQueryHandler(deposit_amount_chosen, pattern="^dep_")],
-            WAITING_DEPOSIT_RECEIPT: [MessageHandler(filters.TEXT & ~filters.COMMAND, deposit_receipt_received)]
+            CHOOSING_DEPOSIT_AMOUNT: [
+                CallbackQueryHandler(deposit_amount_chosen, pattern="^dep_")
+            ],
+            WAITING_DEPOSIT_RECEIPT: [
+                MessageHandler(filters.ALL, deposit_receipt_received)
+            ],
         },
-        fallbacks=[CommandHandler("cancel", cancel)]
+        fallbacks=[CommandHandler("cancel", cancel)],
     )
-    # Conversation for Withdraw
     withdraw_conv = ConversationHandler(
-        entry_points=[
-            MessageHandler(
-                filters.Regex(f"^({'|'.join([TEXT[lang]['withdraw'] for lang in TEXT])})$"),
-                start_withdraw
-            )
-        ],
-        states={WAITING_WITHDRAW_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, withdraw_amount_received)]},
-        fallbacks=[CommandHandler("cancel", cancel)]
+        entry_points=[MessageHandler(filters.TEXT & filters.Regex("^Withdraw$"), start_withdraw)],
+        states={
+            WAITING_WITHDRAW_AMOUNT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, withdraw_amount_received)
+            ],
+        },
+        fallbacks=[CommandHandler("cancel", cancel)],
     )
     app.add_handler(deposit_conv)
     app.add_handler(withdraw_conv)
-    app.add_handler(
-        MessageHandler(
-            filters.Regex(f"^({'|'.join([TEXT[lang]['play'] for lang in TEXT])})$"),
-            show_rooms
-        )
-    )
-    app.add_handler(
-        MessageHandler(
-            filters.Regex(f"^({'|'.join([TEXT[lang].get('change_lang', 'Change Language') for lang in TEXT])})$"),
-            change_language
-        )
-    )
+
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, menu_handler))  
     app.add_handler(CallbackQueryHandler(room_selected, pattern="^room_"))
     print("Bot Running...")
 

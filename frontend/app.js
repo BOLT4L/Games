@@ -243,17 +243,7 @@ function renderGameArena(state){
 
   const app = document.getElementById("app");
 
-  const cardId = myPickedCard;
-
-  if (!cardId) {
-    app.innerHTML = "<h2>Waiting for your card...</h2>";
-    return;
-  }
-
-  if (!allCards[cardId]) {
-    app.innerHTML = `<h2>${t("no_card")}</h2>`;
-    return;
-  }
+  
 
   // 🔥 ONLY render base ONCE
   if (!arenaInitialized) {
@@ -282,6 +272,17 @@ function renderPlayerCard(){
   const container = document.getElementById("playerCard");
 
   const numbers = allCards[myPickedCard];
+  const cardId = myPickedCard;
+
+  if (!cardId) {
+    container.innerHTML = "<h2>Waiting for your card...</h2>";
+    return;
+  }
+
+  if (!allCards[cardId]) {
+    container.innerHTML = `<h2>${t("no_card")}</h2>`;
+    return;
+  }
 
   let html = `
     <div class="player-card">
