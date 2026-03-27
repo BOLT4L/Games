@@ -143,7 +143,6 @@ def pick(room_id):
     if success:
         from worker import broadcast_room
         broadcast_room(socketio, room_id)   # 🔥 ADD THIS
-
     return jsonify({
         "success": success
     })
@@ -159,6 +158,7 @@ def unpick(room_id):
     if success:
         from worker import broadcast_room
         broadcast_room(socketio, room_id)   # 🔥 ADD THIS
+
 
     return jsonify({
         "success": success
@@ -214,4 +214,4 @@ if __name__ == '__main__':
     
     start_worker()
     load_runtime()
-    socketio.run(app, host="0.0.0.0", port=3000, debug=True, use_reloader=False)
+    socketio.run(app, host="0.0.0.0", port=3000, debug=False, allow_unsafe_werkzeug=True)

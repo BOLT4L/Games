@@ -1,7 +1,7 @@
 import time
 import firebase_admin
 from firebase_admin import credentials, db
-import datetime
+from datetime import datetime
 import os
 
 firebase_key_path = os.getenv("FIREBASE_KEY_PATH", "firebase_key.json")
@@ -37,7 +37,7 @@ def create_user(user, phone, lang):
 
     uid = str(user.id)
 
-    now = datetime.datetime.utcnow().isoformat()
+    now = datetime.utcnow().isoformat()
 
     users_ref.child(uid).set({
         "balance": 0,
@@ -95,7 +95,7 @@ def update_balance(uid, amount):
 
     users_ref.child(uid).update({
         "balance": new_balance,
-        "updatedAt": datetime.datetime.utcnow().isoformat()
+        "updatedAt": datetime.utcnow().isoformat()
     })
     if amount > 0 :
         add_deposit(uid,amount)

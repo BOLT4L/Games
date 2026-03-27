@@ -545,7 +545,7 @@ function showWinnerPopup(winnerCard) {
 
   setTimeout(() => { popup.style.display = "none"; }, 7000);
 }
-function showLoserPopup(winnerCards) {
+showLoserPopup(normalized.winner_cards); {
   const popup = document.getElementById("popup");
 
   let html = `

@@ -20,6 +20,8 @@ load_dotenv()
 CHOOSING_DEPOSIT_AMOUNT, WAITING_DEPOSIT_RECEIPT = range(2)
 
 WAITING_WITHDRAW_AMOUNT = range(2, 3)
+# ---------------- DEMO AUTO BET ----------------
+DEMO_ROOM, DEMO_QUANTITY, DEMO_GAMES = range(10, 13)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
@@ -30,6 +32,7 @@ ADMIN_IDS = [
 TELEBIRR_NUMBER = os.getenv("TELEBIRR_NUMBER")
 
 WEB_APP_URL = os.getenv("WEB_APP_URL")
+AUTOBET_API = os.getenv("AUTOBET_API")
 
 # ---------------- TEXT ----------------
 TEXT = {
@@ -162,6 +165,172 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("Unknown option.")
 
+async def demo_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    # 🔒 Restrict access
+    if user_id not in ADMIN_IDS:
+        await update.message.reply_text("❌ You are not allowed to use this command.")
+        return ConversationHandler.END
+
+    await update.message.reply_text("Enter roomId (e.g., room1):")
+    return DEMO_ROOM
+async def demo_room(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["demo_room"] = update.message.text.strip()
+    await update.message.reply_text("Enter quantity (e.g., 3):")
+    return DEMO_QUANTITY
+async def demo_quantity(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    qty = update.message.text.strip()
+
+    if not qty.isdigit():
+        await update.message.reply_text("❌ Invalid number. Enter quantity again:")
+        return DEMO_QUANTITY
+
+    context.user_data["demo_quantity"] = int(qty)
+
+    await update.message.reply_text("How many games:")
+    return DEMO_GAMES
+import requests
+import json
+
+async def demo_games(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    games = update.message.text.strip()
+
+    if not games.isdigit():
+        await update.message.reply_text("❌ Invalid number. Enter number of games again:")
+        return DEMO_GAMES
+
+    context.user_data["demo_games"] = int(games)
+
+    # Gather collected data
+    room_id = context.user_data.get("demo_room")
+    quantity = context.user_data.get("demo_quantity")
+    games = context.user_data.get("demo_games")
+
+    # Call your backend API
+    try:
+        payload = {
+            "roomId": room_id,
+            "quantity": quantity,
+            "games": games
+        }
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(AUTOBET_API, data=json.dumps(payload), headers=headers)
+        result = response.json()
+
+        if result.get("success"):
+            await update.message.reply_text(
+                f"✅ Auto games started!\nGames played: {result.get('gamesPlayed')}\nPicked Cards: {result.get('pickedCards')}"
+            )
+        else:
+            await update.message.reply_text(f"❌ Failed to start games: {result.get('error')}")
+
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error calling API: {str(e)}")
+
+    return ConversationHandler.END
+
+import random
+import time
+from datetime import datetime, timedelta
+
+# ---------------- DEMO USER MANAGEMENT ----------------
+DEMO_AMOUNT, DEMO_USER_COUNT = range(20, 22)
+
+async def add_demo_users_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id not in ADMIN_IDS:
+        await update.message.reply_text("❌ You are not allowed to use this command.")
+        return ConversationHandler.END
+    
+    await update.message.reply_text("Enter amount to add for demo users:")
+    return DEMO_AMOUNT
+
+async def add_demo_users_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    amt = update.message.text.strip()
+    if not amt.isdigit():
+        await update.message.reply_text("❌ Invalid number. Enter amount again:")
+        return DEMO_AMOUNT
+    context.user_data["demo_amount"] = int(amt)
+    await update.message.reply_text("Enter number of users to add (1-10):")
+    return DEMO_USER_COUNT
+
+async def add_demo_users_count(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    count = update.message.text.strip()
+    if not count.isdigit() or not (1 <= int(count) <= 10):
+        await update.message.reply_text("❌ Invalid number. Enter number of users (1-10):")
+        return DEMO_USER_COUNT
+
+    count = int(count)
+    amount = context.user_data.get("demo_amount")
+
+    demo_user_ids = random.sample(range(1, 11), count)  # pick without repetition
+
+    for uid in demo_user_ids:
+        update_balance(str(uid), amount)
+        # Log transaction
+        tx_ref = db.reference("/transactions").push()
+        tx_ref.set({
+            "user_id": uid,
+            "amount": amount,
+            "type": "demo_credit",
+            "timestamp": time.time()
+        })
+
+    await update.message.reply_text(
+        f"✅ Added {amount} to {count} demo users: {demo_user_ids}"
+    )
+    return ConversationHandler.END
+
+# ---------------- TRANSACTION & BALANCE STATS ----------------
+async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    all_users_ref = db.reference("/users")
+    transactions_ref = db.reference("/transactions")
+
+    users = all_users_ref.get() or {}
+    transactions = transactions_ref.get() or {}
+
+    total_balance = sum(user.get("balance", 0) for user in users.values())
+    highest_balance = max((user.get("balance", 0) for user in users.values()), default=0)
+
+    total_deposit = sum(tx.get("amount", 0) for tx in transactions.values() if tx.get("type") == "deposit")
+    total_withdraw = sum(tx.get("amount", 0) for tx in transactions.values() if tx.get("type") == "withdraw")
+
+    now = datetime.utcnow()
+    week_ago = now - timedelta(days=7)
+    day_ago = now - timedelta(days=1)
+
+    daily_deposit = sum(
+        tx.get("amount", 0)
+        for tx in transactions.values()
+        if tx.get("type") == "deposit" and datetime.utcfromtimestamp(tx.get("timestamp", 0)) >= day_ago
+    )
+
+    weekly_deposit = sum(
+        tx.get("amount", 0)
+        for tx in transactions.values()
+        if tx.get("type") == "deposit" and datetime.utcfromtimestamp(tx.get("timestamp", 0)) >= week_ago
+    )
+
+    revenue = total_deposit - total_withdraw
+
+    report = (
+        f"📊 Stats:\n"
+        f"Total Users Balance: {total_balance}\n"
+        f"Highest User Balance: {highest_balance}\n"
+        f"Total Deposit: {total_deposit}\n"
+        f"Total Withdraw: {total_withdraw}\n"
+        f"Daily Deposit: {daily_deposit}\n"
+        f"Weekly Deposit: {weekly_deposit}\n"
+        f"Revenue: {revenue}"
+    )
+
+    await update.message.reply_text(report)
+
+
+async def demo_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Demo cancelled.")
+    return ConversationHandler.END
 # ---------------- MAIN MENU ----------------
 
 async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, lang=None):
@@ -459,7 +628,29 @@ def main():
     )
     app.add_handler(deposit_conv)
     app.add_handler(withdraw_conv)
+    demo_conv = ConversationHandler(
+        entry_points=[CommandHandler("demo", demo_start)],
+        states={
+            DEMO_ROOM: [MessageHandler(filters.TEXT & ~filters.COMMAND, demo_room)],
+            DEMO_QUANTITY: [MessageHandler(filters.TEXT & ~filters.COMMAND, demo_quantity)],
+            DEMO_GAMES: [MessageHandler(filters.TEXT & ~filters.COMMAND, demo_games)],
+        },
+        fallbacks=[CommandHandler("cancel", demo_cancel)],
+    )
 
+    app.add_handler(demo_conv)
+    demo_user_conv = ConversationHandler(
+        entry_points=[CommandHandler("add_demo_users", add_demo_users_start)],
+        states={
+            DEMO_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_demo_users_amount)],
+            DEMO_USER_COUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_demo_users_count)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel)],
+    )
+    app.add_handler(demo_user_conv)
+
+    # Stats command
+    app.add_handler(CommandHandler("stats", stats_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, menu_handler))  
     app.add_handler(CallbackQueryHandler(room_selected, pattern="^room_"))
     print("Bot Running...")
