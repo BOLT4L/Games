@@ -18,7 +18,7 @@ load_dotenv()
 # ---------------- CONFIG ----------------
 
 CHOOSING_DEPOSIT_AMOUNT, WAITING_DEPOSIT_RECEIPT = range(2)
-
+SEND_TARGET, SEND_CONTENT = range(100, 102)
 WAITING_WITHDRAW_AMOUNT = range(2, 3)
 # ---------------- DEMO AUTO BET ----------------
 DEMO_ROOM, DEMO_QUANTITY, DEMO_GAMES = range(10, 13)
@@ -369,7 +369,71 @@ async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, lang=Non
         TEXT[lang].get("menu_text", "Menu"),
         reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     )
+#---------------------SEND message ------------
 
+async def sendmessage_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    if user_id not in ADMIN_IDS:
+        await update.message.reply_text("❌ You are not authorized to use this command.")
+        return ConversationHandler.END
+
+    await update.message.reply_text(
+        "📤 Enter the username (without @), Telegram ID, or type 'all' to message everyone.\n\nYou can send text or media next."
+    )
+
+    return SEND_TARGET
+async def send_target_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["target"] = update.message.text.strip()
+    await update.message.reply_text("✉️ Now send the message (text, photo, video, document, etc.)")
+    return SEND_CONTENT
+async def send_content_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    target = context.user_data.get("target")
+
+    # 🔹 get users
+    if target == "all":
+        users = get_all_users()  # implement this
+    else:
+        users = [target]
+
+    for uid in users:
+        try:
+            # TEXT
+            if update.message.text:
+                await context.bot.send_message(uid, update.message.text)
+
+            # PHOTO
+            elif update.message.photo:
+                await context.bot.send_photo(
+                    uid,
+                    photo=update.message.photo[-1].file_id,
+                    caption=update.message.caption or ""
+                )
+
+            # VIDEO
+            elif update.message.video:
+                await context.bot.send_video(
+                    uid,
+                    video=update.message.video.file_id,
+                    caption=update.message.caption or ""
+                )
+
+            # DOCUMENT
+            elif update.message.document:
+                await context.bot.send_document(
+                    uid,
+                    document=update.message.document.file_id,
+                    caption=update.message.caption or ""
+                )
+
+        except Exception as e:
+            print(f"Failed to send to {uid}: {e}")
+
+    await update.message.reply_text("✅ Message sent.")
+    return ConversationHandler.END
+async def send_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("❌ Send message cancelled.")
+    return ConversationHandler.END
 # ---------------- RECEIPT CHECK ----------------
 async def cancel_process(update, context, message):
     await update.message.reply_text(message)
@@ -662,7 +726,16 @@ def main():
         fallbacks=[CommandHandler("cancel", cancel)],
     )
     app.add_handler(demo_user_conv)
+    send_conv = ConversationHandler(
+        entry_points=[CommandHandler("sendmessage", sendmessage_command)],
+        states={
+            SEND_TARGET: [MessageHandler(filters.TEXT & ~filters.COMMAND, send_target_received)],
+            SEND_CONTENT: [MessageHandler(filters.ALL & ~filters.COMMAND, send_content_received)],
+        },
+        fallbacks=[CommandHandler("cancel", send_cancel)],
+    )
 
+    app.add_handler(send_conv)
     # Stats command
     app.add_handler(CommandHandler("stats", stats_command))
     app.add_handler(deposit_conv)

@@ -562,7 +562,13 @@ function showLoserPopup(winnerCards) {
   `;
 
   winnerCards.forEach((w, index) => {
-    html += `<div id="loserCard_${index}" style="margin:10px auto"></div>`;
+    html += `
+      <div style="margin-bottom:10px">
+        <strong>${w.username || w.user_id}</strong> 
+        (Card #${w.card_id.replace("card","")})
+      </div>
+      <div id="loserCard_${index}" style="margin:10px auto"></div>
+    `;
   });
 
   html += `</div>`;

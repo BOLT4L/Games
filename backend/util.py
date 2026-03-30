@@ -20,7 +20,10 @@ rooms_ref = db.reference("/rooms")
 def is_admin(uid):
     return int(uid) in ADMIN_IDS
 
-
+def get_all_users():
+    ref = db.reference("users")
+    data = ref.get()
+    return list(data.keys()) if data else []
 def get_user(uid):
     return users_ref.child(uid).get()
 

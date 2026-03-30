@@ -240,7 +240,8 @@ def bingo_called(room_id, card_id, pattern_numbers,player_id):
         return False
 
     now = time.time()
-
+    user = get_user(player_id)
+    username = user.get("username", "Unknown") if user else "no username"
     # first winner
     if not runtime.get("bingo_locked"):
 
@@ -251,6 +252,8 @@ def bingo_called(room_id, card_id, pattern_numbers,player_id):
         runtime["winner_cards"] = [
             {
                 "card_id": card_id,
+                "user_id": player_id,
+                "username":username,
                 "pattern": pattern_numbers,
             }
         ]
@@ -267,6 +270,8 @@ def bingo_called(room_id, card_id, pattern_numbers,player_id):
         if card_id not in existing_cards:
             runtime["winner_cards"].append({
                 "card_id": card_id,
+                "user_id": player_id,
+                "username":username,
                 "pattern": pattern_numbers,
             })
         return True
