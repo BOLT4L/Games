@@ -543,7 +543,7 @@ function showWinnerPopup(winnerCard) {
 
   popup.style.display = "block";
 
-  setTimeout(() => { popup.style.display = "none"; }, 7000);
+  setTimeout(() => { popup.style.display = "none"; }, 4000);
 }
 function showLoserPopup(winnerCards) {
   const popup = document.getElementById("popup");
@@ -573,7 +573,7 @@ function showLoserPopup(winnerCards) {
     renderHighlightedCard(w.card_id, w.pattern, `loserCard_${index}`, false);
   });
 
-  setTimeout(() => { popup.style.display = "none"; }, 7000);
+  setTimeout(() => { popup.style.display = "none"; }, 4000);
 }
 async function renderHighlightedCard(cardId, pattern, containerId, isWinner=false) {
   const container = document.getElementById(containerId);

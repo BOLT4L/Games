@@ -48,6 +48,13 @@ TEXT = {
         "not_registered": "Please register first",
         "request_sent" : " Thanks your request has been sent .",
         "not_eligible" : "Not eligible for withdraw",
+        "change_lang": "Change Language",
+        "menu_text": "Main Menu",
+        "already_registered": "You are already registered.",
+        "registration_success": "Registration successful!",
+        "unknown_option": "Unknown option.",
+        "no_rooms": "No rooms available right now.",
+        "room_selected": "Room {room_id} selected. Tap below to enter:"
     },
 
     "am": {
@@ -62,6 +69,13 @@ TEXT = {
         "not_registered": "እባክዎ መመዝገብ ያስፈልጋል",
         "request_sent" : "እናመሰግናለን ጥያቄዎ በተሳካ ሁኔታ ተልኳል ::",
         "not_eligible" : "ገንዘብ ለማውጣት ብቁ አይደሉም",
+        "change_lang": "ቋንቋ ቀይር",
+        "menu_text": "ዋና ማውጫ",
+        "already_registered": "ከዚህ በፊት ተመዝግበዋል።",
+        "registration_success": "ምዝገባ ተሳክቷል!",
+        "unknown_option": "ያልታወቀ ምርጫ",
+        "no_rooms": "አሁን ምንም ክፍሎች የሉም",
+        "room_selected": "ክፍል {room_id} ተመርጧል። ከታች ይግቡ:"
     },
 
     "om": {
@@ -76,6 +90,13 @@ TEXT = {
         "not_registered": "Mee jalqaba galmaa'i",
         "request_sent": "Galatoomaa, gaaffiin keessan milkaa'inaan ergameera",
         "not_eligible" : "Maallaqa baasuuf ulaagaa hin guutu",
+        "change_lang": "Afaan Jijjiiri",
+        "menu_text": "Menu Guddaa",
+        "already_registered": "Dursee galmaa'aniittu.",
+        "registration_success": "Galmeen milkaa'eera!",
+        "unknown_option": "Filannoo hin beekamne",
+        "no_rooms": "Amma kutaan hin jiru",
+        "room_selected": "Kutaa {room_id} filatameera. Gadiin seeni:"
     }
 }
 ROOM_NAMES = {
@@ -94,16 +115,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"Error fetching user: {e}")
         user = None
 
-    if user:
-        await main_menu(update, context)
-        return
+    
 
-    keyboard = [[InlineKeyboardButton("English", callback_data="lang_en")]]
-    await update.message.reply_text(
-        "Choose Language",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-
+    return await change_language(update, context)
 # ---------------- LANGUAGE ----------------
 
 async def language_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -130,8 +144,9 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     existing = get_user(uid)
 
     if existing:
-        await update.message.reply_text("You are already registered.")
-        await main_menu(update)
+        lang = context.user_data.get("lang", "en")
+        await update.message.reply_text(TEXT[lang]["already_registered"])
+        await main_menu(update, context)
         return
 
     contact = update.message.contact
@@ -139,15 +154,15 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     create_user(user, contact.phone_number, lang)
 
-    await update.message.reply_text("Registration successful!")
+    await update.message.reply_text(TEXT[lang]["registration_success"])
 
-    await main_menu(update)
+    await main_menu(update, context)
 
 async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     uid = update.effective_user.id
-
-    lang = await get_user_lang(uid)
+    import util
+    lang = await util.get_user_lang(uid)
     context.user_data["lang"] = lang
 
     if text == TEXT[lang]["deposit"]:
@@ -163,7 +178,7 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await change_language(update, context)
 
     else:
-        await update.message.reply_text("Unknown option.")
+        await update.message.reply_text(TEXT[lang]["unknown_option"])
 
 async def demo_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -205,7 +220,7 @@ async def demo_games(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Gather collected data
     room_id = context.user_data.get("demo_room")
     quantity = context.user_data.get("demo_quantity")
-    games = context.user_data.get("demo_games")
+    games = context.user_data.get("demo_games") 
 
     # Call your backend API
     try:
@@ -546,7 +561,7 @@ async def show_rooms(update: Update, context: ContextTypes.DEFAULT_TYPE):
     rooms = worker.load_runtime()
 
     if not rooms:
-        await update.message.reply_text("No rooms available right now.")
+        await update.message.reply_text(TEXT[lang]["no_rooms"])
         return
 
     keyboard = []
@@ -589,7 +604,7 @@ async def room_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]]
 
     await query.message.reply_text(
-        f"Room {room_id} selected. Tap below to enter:",
+        "room_selected".format(room_id=room_id),
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 # ---------------- MAIN ----------------
@@ -606,7 +621,7 @@ def main():
     app.add_handler(CallbackQueryHandler(admin_actions, pattern="approve_|deny_"))
     
     deposit_conv = ConversationHandler(
-        entry_points=[MessageHandler(filters.TEXT & filters.Regex("^Deposit$"), start_deposit)],
+        entry_points=[MessageHandler(filters.Regex(f"^{TEXT['en']['deposit']}$|^{TEXT['am']['deposit']}$|^{TEXT['om']['deposit']}$"), start_deposit)],
         states={
             CHOOSING_DEPOSIT_AMOUNT: [
                 CallbackQueryHandler(deposit_amount_chosen, pattern="^dep_")
@@ -618,7 +633,7 @@ def main():
         fallbacks=[CommandHandler("cancel", cancel)],
     )
     withdraw_conv = ConversationHandler(
-        entry_points=[MessageHandler(filters.TEXT & filters.Regex("^Withdraw$"), start_withdraw)],
+        entry_points=[MessageHandler(filters.Regex(f"^{TEXT['en']['withdraw']}$|^{TEXT['am']['withdraw']}$|^{TEXT['om']['withdraw']}$"), start_withdraw)],
         states={
             WAITING_WITHDRAW_AMOUNT: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, withdraw_amount_received)
@@ -626,8 +641,7 @@ def main():
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
-    app.add_handler(deposit_conv)
-    app.add_handler(withdraw_conv)
+    
     demo_conv = ConversationHandler(
         entry_points=[CommandHandler("demo", demo_start)],
         states={
@@ -651,6 +665,8 @@ def main():
 
     # Stats command
     app.add_handler(CommandHandler("stats", stats_command))
+    app.add_handler(deposit_conv)
+    app.add_handler(withdraw_conv)
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, menu_handler))  
     app.add_handler(CallbackQueryHandler(room_selected, pattern="^room_"))
     print("Bot Running...")
