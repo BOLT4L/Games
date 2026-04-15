@@ -109,7 +109,7 @@ async function playGames(roomId, quantity, games) {
     return await res.json();
   }
 
-  async function pickCard(userId, cardId) {
+  async function pickCard(userId, cardId, betAmount = 0) {
     const res = await fetch(`${API_BASE}/room/${roomId}/pick`, {
       method: "POST",
       headers: {
@@ -148,6 +148,7 @@ async function playGames(roomId, quantity, games) {
       console.log("Room not in valid state, stopping...");
       break;
     }
+    const gameBetAmount = Number(roomState.bet_amount ?? roomState.bet ?? 0) || 0;
 let successfulPicks = 0;
 const shuffledUsers = [...demoUsers].sort(() => Math.random() - 0.5);
 
@@ -183,10 +184,16 @@ for (let userId of shuffledUsers) {
     const idx = Math.floor(Math.random() * availableCards.length);
     const cardId = availableCards[idx];
 
-    const result = await pickCard(userId, cardId);
+    const result = await pickCard(userId, cardId, gameBetAmount);
 
 if (result.success) {
-  // ✅ success
+  const cardNumbers = allCards[cardId];
+  if (!userPickedCards[userId]) userPickedCards[userId] = [];
+  userPickedCards[userId].push({ cardId, numbers: cardNumbers });
+
+  if (!resultSummary[userId]) resultSummary[userId] = [];
+  resultSummary[userId].push(cardId);
+
   picked = true;
   successfulPicks++;
 } else {
