@@ -138,7 +138,7 @@ def handle_playing(room_id):
 
     now = time.time()
 
-    if now - runtime["last_draw_time"] < 2:
+    if now - runtime["last_draw_time"] < 3:
         return False
 
     number = draw_number(runtime)

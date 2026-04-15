@@ -341,15 +341,15 @@ function updateCalledBoard(){
   html += `<div style="display:flex;justify-content:center;gap:10px;margin-bottom:10px;align-items:flex-end">`;
 
   if(last){
-    html += `<div style="width:30px;height:30px;border-radius:50%;background:${getBingoColor(last)};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;">${last}</div>`;
+    html += `<div style="width:30px;height:30px;border-radius:50%;background:${getBingoColor(last)};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold;">${last}</div>`;
   }
 
   if(prev){
-    html += `<div style="width:22px;height:22px;border-radius:50%;background:${getBingoColor(prev)};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;">${prev}</div>`;
+    html += `<div style="width:22px;height:22px;border-radius:50%;background:${getBingoColor(prev)};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;">${prev}</div>`;
   }
 
   if(prev2){
-    html += `<div style="width:16px;height:16px;border-radius:50%;background:${getBingoColor(prev2)};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:bold;">${prev2}</div>`;
+    html += `<div style="width:16px;height:16px;border-radius:50%;background:${getBingoColor(prev2)};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;">${prev2}</div>`;
   }
 
   html += `</div>`;

@@ -290,19 +290,19 @@ async def add_demo_users_amount(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text("❌ Invalid number. Enter amount again:")
         return DEMO_AMOUNT
     context.user_data["demo_amount"] = int(amt)
-    await update.message.reply_text("Enter number of users to add (1-10):")
+    await update.message.reply_text("Enter number of users to add (1-30):")
     return DEMO_USER_COUNT
 
 async def add_demo_users_count(update: Update, context: ContextTypes.DEFAULT_TYPE):
     count = update.message.text.strip()
-    if not count.isdigit() or not (1 <= int(count) <= 10):
-        await update.message.reply_text("❌ Invalid number. Enter number of users (1-10):")
+    if not count.isdigit() or not (1 <= int(count) <= 30):
+        await update.message.reply_text("❌ Invalid number. Enter number of users (1-30):")
         return DEMO_USER_COUNT
 
     count = int(count)
     amount = context.user_data.get("demo_amount")
 
-    demo_user_ids = random.sample(range(1, 11), count)  # pick without repetition
+    demo_user_ids = random.sample(range(1, 31), count)  # pick without repetition
 
     for uid in demo_user_ids:
         update_balance(str(uid), amount)

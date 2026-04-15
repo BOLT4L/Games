@@ -208,7 +208,7 @@ for (let userId of shuffledUsers) {
     }
 
     availableCards.splice(idx, 1);
-    await sleep(1500);
+    await sleep(1000);
   }
 }
 
