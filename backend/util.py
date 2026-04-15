@@ -1,8 +1,74 @@
 import time
+import secrets
 import firebase_admin
 from firebase_admin import credentials, db
 from datetime import datetime
 import os
+
+ADMIN_PENDING_REQUESTS = "admin_pending_requests"
+
+
+def new_admin_request_id():
+    return secrets.token_hex(8)
+
+
+def create_pending_admin_request(kind, uid, amount, body_text, admin_messages, request_id=None):
+    """
+    kind: 'dep' | 'wd'
+    admin_messages: { str(admin_id): {"chat_id": int, "message_id": int}, ... }
+    """
+    rid = request_id or new_admin_request_id()
+    ref = db.reference(f"{ADMIN_PENDING_REQUESTS}/{rid}")
+    amt = amount
+    if isinstance(amount, str) and amount.isdigit():
+        amt = int(amount)
+    elif isinstance(amount, (int, float)):
+        amt = int(amount)
+    ref.set(
+        {
+            "kind": kind,
+            "uid": str(uid),
+            "amount": amt,
+            "body_text": body_text,
+            "status": "pending",
+            "messages": admin_messages,
+        }
+    )
+    return rid
+
+
+def claim_pending_admin_request(request_id, admin_id, action):
+    """
+    Atomically moves status from pending to approved/denied.
+    Returns (claimed: bool, data: dict | None).
+    claimed is True if this admin was the one who resolved the request.
+    """
+    ref = db.reference(f"{ADMIN_PENDING_REQUESTS}/{request_id}")
+
+    def transaction_fn(current):
+        if current is None:
+            return None
+        if current.get("status") != "pending":
+            return current
+        out = dict(current)
+        out["status"] = "approved" if action == "approve" else "denied"
+        out["processed_by"] = str(admin_id)
+        return out
+
+    try:
+        ref.transaction(transaction_fn)
+    except Exception:
+        return False, ref.get()
+
+    data = ref.get()
+    if not data:
+        return False, None
+    if data.get("processed_by") == str(admin_id) and data.get("status") in (
+        "approved",
+        "denied",
+    ):
+        return True, data
+    return False, data
 
 firebase_key_path = os.getenv("FIREBASE_KEY_PATH", "firebase_key.json")
 
@@ -43,7 +109,7 @@ def create_user(user, phone, lang):
     now = datetime.utcnow().isoformat()
 
     users_ref.child(uid).set({
-        "balance": 0,
+        "balance": 10,
         "createdAt": now,
         "gamesPlayed": 0,
         "gamesWon": 0,

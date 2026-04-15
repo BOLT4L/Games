@@ -11,6 +11,7 @@ from telegram.ext import (
     CallbackQueryHandler, filters, ContextTypes, ConversationHandler
 )
 from  util import *
+import util
 
 import os
 from dotenv import load_dotenv
@@ -115,9 +116,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"Error fetching user: {e}")
         user = None
 
-    
+    # ✅ USER EXISTS
+    if user:
+        context.user_data["lang"] = user.get("lang", "am")
+        await update.message.reply_text(TEXT["am"]["already_registered"])
+        return await main_menu(update, context)
 
-    return await change_language(update, context)
+    # ❌ USER DOES NOT EXIST → ask contact
+    keyboard = [[KeyboardButton("📱 Share Contact", request_contact=True)]]
+
+    await update.message.reply_text(
+        TEXT["am"]["welcome"],
+        reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=True)
+    )
 # ---------------- LANGUAGE ----------------
 
 async def language_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -207,41 +218,53 @@ async def demo_quantity(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return DEMO_GAMES
 import requests
 import json
+import aiohttp
+
+import asyncio
+
+async def run_autobet(payload, chat_id, context):
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(AUTOBET_API, json=payload) as resp:
+                result = await resp.json()
+
+        if result.get("success"):
+            await context.bot.send_message(
+                chat_id,
+                f"✅ Done!\nGames: {result.get('gamesPlayed')}\nCards: {result.get('pickedCards')}"
+            )
+        else:
+            await context.bot.send_message(
+                chat_id,
+                f"❌ Failed: {result.get('error')}"
+            )
+
+    except Exception as e:
+        await context.bot.send_message(chat_id, f"❌ Error: {str(e)}")
+
 
 async def demo_games(update: Update, context: ContextTypes.DEFAULT_TYPE):
     games = update.message.text.strip()
 
     if not games.isdigit():
-        await update.message.reply_text("❌ Invalid number. Enter number of games again:")
+        await update.message.reply_text("❌ Invalid number. Enter again:")
         return DEMO_GAMES
 
     context.user_data["demo_games"] = int(games)
 
-    # Gather collected data
-    room_id = context.user_data.get("demo_room")
-    quantity = context.user_data.get("demo_quantity")
-    games = context.user_data.get("demo_games") 
+    payload = {
+        "roomId": context.user_data.get("demo_room"),
+        "quantity": context.user_data.get("demo_quantity"),
+        "games": context.user_data.get("demo_games"),
+    }
 
-    # Call your backend API
-    try:
-        payload = {
-            "roomId": room_id,
-            "quantity": quantity,
-            "games": games
-        }
-        headers = {"Content-Type": "application/json"}
-        response = requests.post(AUTOBET_API, data=json.dumps(payload), headers=headers)
-        result = response.json()
+    # ✅ Respond immediately
+    await update.message.reply_text("⏳ Auto games started in background...")
 
-        if result.get("success"):
-            await update.message.reply_text(
-                f"✅ Auto games started!\nGames played: {result.get('gamesPlayed')}\nPicked Cards: {result.get('pickedCards')}"
-            )
-        else:
-            await update.message.reply_text(f"❌ Failed to start games: {result.get('error')}")
-
-    except Exception as e:
-        await update.message.reply_text(f"❌ Error calling API: {str(e)}")
+    # ✅ Run API in background (THIS IS THE KEY)
+    asyncio.create_task(
+        run_autobet(payload, update.effective_chat.id, context)
+    )
 
     return ConversationHandler.END
 
@@ -446,6 +469,68 @@ async def cancel_process(update, context, message):
 
     return ConversationHandler.END
 
+
+def _amount_from_pending(data):
+    a = data.get("amount")
+    if isinstance(a, int):
+        return a
+    if isinstance(a, float):
+        return int(a)
+    s = str(a).strip()
+    if s.isdigit():
+        return int(s)
+    return int(float(s))
+
+
+async def apply_admin_resolution_ui(context: ContextTypes.DEFAULT_TYPE, data: dict):
+    """Remove buttons on every admin copy and append a closed footer."""
+    status = data.get("status")
+    body = data.get("body_text", "")
+    if status == "approved":
+        suffix = "\n\n────────\n✅ Approved — request closed."
+    elif status == "denied":
+        suffix = "\n\n────────\n❌ Denied — request closed."
+    else:
+        suffix = "\n\n────────\n✔️ Closed."
+    new_text = f"{body}{suffix}"
+    for aid, msg in (data.get("messages") or {}).items():
+        try:
+            await context.bot.edit_message_text(
+                chat_id=msg["chat_id"],
+                message_id=msg["message_id"],
+                text=new_text,
+                reply_markup=None,
+            )
+        except Exception as e:
+            print(f"admin message edit failed ({aid}): {e}")
+
+
+async def broadcast_request_closed_to_admins(
+    context: ContextTypes.DEFAULT_TYPE, data: dict, acting_admin_id: int
+):
+    label = "approved" if data.get("status") == "approved" else "denied"
+    kind = "Deposit" if data.get("kind") == "dep" else "Withdraw"
+    uid = data.get("uid", "?")
+    amt = data.get("amount", "?")
+    handler = str(acting_admin_id)
+    try:
+        chat = await context.bot.get_chat(acting_admin_id)
+        if getattr(chat, "username", None):
+            handler = f"@{chat.username}"
+    except Exception:
+        pass
+    text = (
+        f"ℹ️ {kind} request closed (already {label}).\n"
+        f"User: {uid} · Amount: {amt}\n"
+        f"Handled by: {handler}"
+    )
+    for admin_id in ADMIN_IDS:
+        try:
+            await context.bot.send_message(admin_id, text)
+        except Exception as e:
+            print(f"broadcast to admin {admin_id}: {e}")
+
+
 async def start_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Triggered by 'Deposit' button or /deposit command"""
     uid = update.effective_user.id
@@ -485,23 +570,32 @@ async def deposit_receipt_received(update: Update, context: ContextTypes.DEFAULT
     if not is_valid:
         return await cancel_process(update, context, result)
 
+    body_text = f"Deposit request\nUser:{uid}\nAmount:{amount}\nReceipt:{receipt}\nURL:{url}"
+    request_id = util.new_admin_request_id()
     keyboard = [[
         InlineKeyboardButton(
             "Approve",
-            callback_data=f"approve_dep_{uid}_{amount}"
+            callback_data=f"approve_dep_{request_id}",
         ),
         InlineKeyboardButton(
             "Deny",
-            callback_data=f"deny_dep_{uid}_{amount}"
-        )
+            callback_data=f"deny_dep_{request_id}",
+        ),
     ]]
 
+    admin_messages = {}
     for admin in ADMIN_IDS:
-        await context.bot.send_message(
+        sent = await context.bot.send_message(
             admin,
-            f"Deposit request\nUser:{uid}\nAmount:{amount}\nReceipt:{receipt}\nURL:{url}",
-            reply_markup=InlineKeyboardMarkup(keyboard)
+            body_text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
         )
+        admin_messages[str(admin)] = {
+            "chat_id": sent.chat_id,
+            "message_id": sent.message_id,
+        }
+
+    create_pending_admin_request("dep", uid, amount, body_text, admin_messages, request_id=request_id)
 
     await update.message.reply_text(TEXT[lang]["request_sent"])
     return ConversationHandler.END
@@ -528,23 +622,32 @@ async def withdraw_amount_received(update: Update, context: ContextTypes.DEFAULT
     if not is_ok:
         return await cancel_process(update, context, msg)
 
+    body_text = f"Withdraw request\nUser:{uid}\nAmount:{amount}"
+    request_id = util.new_admin_request_id()
     keyboard = [[
         InlineKeyboardButton(
             "Approve",
-            callback_data=f"approve_wd_{uid}_{amount}"
+            callback_data=f"approve_wd_{request_id}",
         ),
         InlineKeyboardButton(
             "Deny",
-            callback_data=f"deny_wd_{uid}_{amount}"
-        )
+            callback_data=f"deny_wd_{request_id}",
+        ),
     ]]
 
+    admin_messages = {}
     for admin in ADMIN_IDS:
-        await context.bot.send_message(
+        sent = await context.bot.send_message(
             admin,
-            f"Withdraw request\nUser:{uid}\nAmount:{amount}",
-            reply_markup=InlineKeyboardMarkup(keyboard)
+            body_text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
         )
+        admin_messages[str(admin)] = {
+            "chat_id": sent.chat_id,
+            "message_id": sent.message_id,
+        }
+
+    create_pending_admin_request("wd", uid, amount, body_text, admin_messages, request_id=request_id)
 
     await update.message.reply_text(TEXT[lang]["request_sent"])
     return ConversationHandler.END
@@ -555,45 +658,80 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ---------------- ADMIN ACTIONS ----------------
 
 async def admin_actions(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
     query = update.callback_query
-    await query.answer()
 
-    if not is_admin(query.from_user.id):
-        await query.answer("Unauthorized", show_alert=True)
+
+    parts = query.data.split("_", 2)
+    if len(parts) != 3:
+        await query.answer("Invalid action", show_alert=True)
+        return
+    action, tx_type, request_id = parts
+    if tx_type not in ("dep", "wd") or action not in ("approve", "deny"):
+        await query.answer("Invalid action", show_alert=True)
         return
 
-    data = query.data.split("_")
+    print(f"Admin action: {action}, {tx_type}, request_id={request_id}")
 
-    action = data[0]
-    tx_type = data[1]
-    uid = data[2]
-    amount = int(data[3])
-
-    await query.edit_message_reply_markup(reply_markup=None)
-
-    if action == "approve":
-
-        if tx_type == "dep":
-            update_balance(uid, amount)
-            await context.bot.send_message(
-                uid,
-                f"Deposit approved +{amount}"
-            )
-
-        elif tx_type == "wd":
-            update_balance(uid, -amount)
-            await context.bot.send_message(
-                uid,
-                f"Withdraw approved -{amount}"
-            )
-
-    else:
-        await context.bot.send_message(
-            uid,
-            f"{tx_type} request denied"
+    try:
+        claimed, data = claim_pending_admin_request(
+            request_id, query.from_user.id, action
         )
+    except Exception as e:
+        print(f"claim_pending_admin_request error: {e}")
+        try:
+            await query.answer("Error processing request", show_alert=True)
+        except Exception:
+            pass
+        return
 
+    if not data:
+        await query.answer("Request not found.", show_alert=True)
+        return
+
+    if data.get("kind") != tx_type:
+        await query.answer("Request data mismatch.", show_alert=True)
+        return
+
+    try:
+        uid = str(data["uid"])
+        amount = _amount_from_pending(data)
+    except (TypeError, ValueError, KeyError) as e:
+        print(f"admin_actions parse error: {e}")
+        await query.answer("Invalid request data", show_alert=True)
+        return
+
+    try:
+        if claimed:
+            if action == "approve":
+                if tx_type == "dep":
+                    update_balance(uid, amount)
+                    await context.bot.send_message(
+                        uid, f"✅ Deposit approved +{amount}"
+                    )
+                elif tx_type == "wd":
+                    update_balance(uid, -amount)
+                    await context.bot.send_message(
+                        uid, f"✅ Withdraw approved -{amount}"
+                    )
+            else:
+                await context.bot.send_message(
+                    uid, f"❌ {tx_type.upper()} request denied"
+                )
+
+            await apply_admin_resolution_ui(context, data)
+            await broadcast_request_closed_to_admins(context, data, query.from_user.id)
+            await query.answer(
+                "✅ Processed" if action == "approve" else "Denied"
+            )
+        else:
+            await apply_admin_resolution_ui(context, data)
+            await query.answer("Already approved or denied.", show_alert=True)
+    except Exception as e:
+        print(f"Admin action error: {e}")
+        try:
+            await query.answer("Error processing request", show_alert=True)
+        except Exception:
+            pass
 # ---------------- LANGUAGE CHANGE ----------------
 
 # ---------------- LANGUAGE CHANGE ----------------
@@ -679,10 +817,12 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("changelanguage", change_language))
+    app.add_handler(MessageHandler(filters.CONTACT, contact_handler))
+    
+    app.add_handler(CallbackQueryHandler(admin_actions, pattern="^(approve|deny)_"))
 
     # already in your main()
     app.add_handler(CallbackQueryHandler(language_selected, pattern="lang_"))
-    app.add_handler(CallbackQueryHandler(admin_actions, pattern="approve_|deny_"))
     
     deposit_conv = ConversationHandler(
         entry_points=[MessageHandler(filters.Regex(f"^{TEXT['en']['deposit']}$|^{TEXT['am']['deposit']}$|^{TEXT['om']['deposit']}$"), start_deposit)],
@@ -691,7 +831,7 @@ def main():
                 CallbackQueryHandler(deposit_amount_chosen, pattern="^dep_")
             ],
             WAITING_DEPOSIT_RECEIPT: [
-                MessageHandler(filters.ALL, deposit_receipt_received)
+                MessageHandler(filters.TEXT, deposit_receipt_received)
             ],
         },
         fallbacks=[CommandHandler("cancel", cancel)],

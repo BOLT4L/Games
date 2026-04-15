@@ -99,9 +99,8 @@ function checkWinningPattern(card, drawnNumbers) {
 }
 // 🔥 UPDATED FUNCTION
 async function playGames(roomId, quantity, games) {
-  const demoUsers = ["1","2","3","4","5","6","7","8","9","10"];
-  let userPickedCards = {}; 
-// userId -> [{cardId, numbers}]
+  const demoUsers = ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30"];
+  // userId -> [{cardId, numbers}]
   async function fetchRoomState() {
     const res = await fetch(`${API_BASE}/room/${roomId}/state`, {
       headers: { "ngrok-skip-browser-warning": "true" }
@@ -135,6 +134,8 @@ async function playGames(roomId, quantity, games) {
   // 🔥 MAIN LOOP (games)
   for (let game = 0; game < games; game++) {
     console.log(`🎮 Game ${game + 1}/${games}`);
+    // Per-game picked cards (don't leak state across rounds)
+    const userPickedCards = {};
 
     const roomState = await fetchRoomState();
 
@@ -214,26 +215,19 @@ for (let userId of shuffledUsers) {
     // 🔥 delay between games
     console.log("⏳ Waiting before next game...");
     await sleep(2000);
-  // ✅ wait only if NOT the last game
-// After all demo users have picked their cards
-if (Object.keys(userPickedCards).length > 0) {
-  // Wait until the game actually starts
-  let roomState = await fetchRoomState();
-  while (roomState && roomState.state === "waiting") {
-    console.log("⏳ Room waiting to start game, delaying bingo monitoring...");
-    await sleep(1000);
-    roomState = await fetchRoomState();
-  }
 
-  // Only monitor bingo if game is active
-  if (roomState && ["countdown", "playing"].includes(roomState.state)) {
-    console.log("🚀 Starting bingo monitoring for active players...");
-    await monitorBingo(roomId, userPickedCards, allCards);
-  }
-}
-if (game < games - 1) {
-  await waitForNextGame(roomId);
-}
+    // After all demo users have picked their cards, monitor bingo until bingo is called or game ends.
+    if (Object.keys(userPickedCards).length > 0) {
+      console.log("🚀 Starting bingo monitoring for this round...");
+      await monitorBingo(roomId, userPickedCards, allCards);
+    } else {
+      console.log("ℹ️ No demo users picked cards this round; skipping bingo monitoring.");
+    }
+
+    // ✅ wait only if NOT the last game
+    if (game < games - 1) {
+      await waitForNextGame(roomId);
+    }
   
   }
 
@@ -272,6 +266,11 @@ async function monitorBingo(roomId, userPickedCards, allCards) {
     }
 
     const data = await res.json();
+    const state = data.state;
+    if (state === "ended") {
+      console.log("🛑 Game ended before a demo bingo call succeeded.");
+      return false;
+    }
 
     const drawnNumbers = data.drawn_numbers || [];
 
