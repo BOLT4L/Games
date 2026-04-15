@@ -119,11 +119,11 @@ async function playGames(roomId, quantity, games) {
       body: JSON.stringify({
         user_id: userId,
         card_id: cardId,
-        bet_amount: 0
+        bet_amount: betAmount
       })
     });
-    const data = await res.json();
-    return data.success;
+
+    return await res.json(); // return full response
   }
 
   const allCards = JSON.parse(fs.readFileSync("cards.json", "utf-8"));
@@ -183,30 +183,31 @@ for (let userId of shuffledUsers) {
     const idx = Math.floor(Math.random() * availableCards.length);
     const cardId = availableCards[idx];
 
-    const success = await pickCard(userId, cardId);
+    const result = await pickCard(userId, cardId);
 
-    if (success) {
-      const cardNumbers = allCards[cardId]; // from cards.json
+if (result.success) {
+  // ✅ success
+  picked = true;
+  successfulPicks++;
+} else {
+  if (result.reason === "insufficient_balance") {
+    console.log(`⛔ ${userId} has low balance → skip user`);
+    break; // ❗ stop trying this user
+  }
 
-      if (!userPickedCards[userId]) userPickedCards[userId] = [];
+  if (result.reason === "card_taken") {
+    // ✅ try another card
+    continue;
+  }
 
-      userPickedCards[userId].push({
-        cardId,
-        numbers: cardNumbers
-      });
-      takenCards.add(cardId);
+  if (result.reason === "already_has_card") {
+    break;
+  }
 
-      if (!resultSummary[userId]) resultSummary[userId] = [];
-      resultSummary[userId].push(cardId);
-
-      successfulPicks++;
-      picked = true;
-
-      console.log(`✅ User ${userId} picked card ${cardId}`);
-    }
-    else{
-      console.log("wtf")
-    }
+  if (result.reason === "invalid_state") {
+    break;
+  }
+}
 
     availableCards.splice(idx, 1);
     await sleep(1000);

@@ -138,13 +138,15 @@ def pick(room_id):
     card_id = data.get("card_id")
 
 
-    success = pick_card(room_id, user_id, card_id, bet_amount)
+    success, reason = pick_card(room_id, user_id, card_id, bet_amount)
 
     if success:
         from worker import broadcast_room
-        broadcast_room(socketio, room_id)   # 🔥 ADD THIS
+        broadcast_room(socketio, room_id)
+
     return jsonify({
-        "success": success
+        "success": success,
+        "reason": reason
     })
 @app.route('/room/<room_id>/unpick', methods=['POST'])
 def unpick(room_id):

@@ -28,7 +28,7 @@ const LANG = {
     bingo: "ቢንጎ",
     no_card: "ካርድ አልተመረጠም",
     players: "ተጫዋቾች",
-    pot: "ገንዘብ",
+    pot: "ደራሽ",
     bet: "ውርርድ",
     balance: "ቀሪ ሂሳብ",
     state: "ሁኔታ",

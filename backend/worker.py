@@ -458,60 +458,41 @@ import json
 
   # assumed format: { "card_id": [25 numbers], ... }
 
-def pick_card(room_id, user_id, card_id,bet_amount):
-    """
-    Assign a card to a player in a room with validation.
-    """
-    
-    # 1️⃣ Check if card exists in available cards
-    if card_id not in AVAILABLE_CARDS:
-        print(f"Card {card_id} does not exist in cards.json")
-        return False
+def pick_card(room_id, user_id, card_id, bet_amount):
 
-    # 2️⃣ Check if user exists in DB
+    if card_id not in AVAILABLE_CARDS:
+        return False, "invalid_card"
+
     user_ref = db.reference(f"/users/{user_id}").get()
     if not user_ref:
-        print(f"User {user_id} does not exist")
-        return False
-    
+        return False, "user_not_found"
+
     user_balance = user_ref.get("balance", 0)
 
     if user_balance < bet_amount:
-        print(f"User {user_id} has insufficient balance")
-        return False
-    # 3️⃣ Initialize room runtime if missing
-   
+        return False, "insufficient_balance"
 
     runtime = ROOM_RUNTIME[room_id]
     room_state = runtime.get("state", "waiting")
     if room_state not in ["waiting", "countdown"]:
-        print(f"Cannot pick card in state: {room_state}")
-        return False
+        return False, "invalid_state"
 
-    # 4️⃣ Check if user already has a card in this room
     for c_id, c_data in runtime["cards"].items():
         if c_data["player_id"] == user_id:
-            print(f"User {user_id} already has card {c_id} in room {room_id}")
-            return False
+            return False, "already_has_card"
 
-    # 5️⃣ Check if card is already picked by someone else
     if card_id in runtime["cards"]:
-        print(f"Card {card_id} already picked in room {room_id}")
-        return False
+        return False, "card_taken"
 
-    # ✅ Assign card
     runtime["cards"][card_id] = {
         "player_id": user_id,
         "numbers": AVAILABLE_CARDS[card_id]
     }
 
-    # Add player to players list if not already there
     if user_id not in runtime["players"]:
         runtime["players"].append(user_id)
 
-    print(f"Player {user_id} successfully picked card {card_id} in room {room_id}")
-    return True
-
+    return True, "success"
 def unpick_card(room_id, user_id, card_id):
     """
     Remove a card from a room runtime.
