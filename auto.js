@@ -158,7 +158,8 @@ for (let userId of shuffledUsers) {
 
   if (!latestState || !["waiting", "countdown"].includes(latestState.state)) {
     console.log("Room stopped mid-game");
-    return resultSummary;
+    console.log("⚠️ Game started during picking, proceeding with current cards...");
+    break;
   }
 
   const userCards = latestState.cards
