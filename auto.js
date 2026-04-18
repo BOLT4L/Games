@@ -316,26 +316,23 @@ async function monitorBingo(roomId, userPickedCards, allCards) {
 app.post("/play", async (req, res) => {
   const { roomId, quantity, games } = req.body;
 
-  if (!roomId || !quantity || !games) {
-    return res.status(400).json({
-      error: "roomId, quantity, and games are required"
-    });
-  }
+  const jobId = Date.now().toString();
 
-  try {
-    const result = await playGames(roomId, quantity, games);
-    res.json({
-      success: true,
-      gamesPlayed: games,
-      pickedCards: result
+  // ✅ respond immediately (critical for Render)
+  res.json({
+    success: true,
+    jobId
+  });
+
+  // ✅ run in background
+  playGames(roomId, quantity, games)
+    .then(result => {
+      console.log("DONE:", jobId);
+      // store result (DB / memory)
+    })
+    .catch(err => {
+      console.error("FAILED:", jobId, err);
     });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      success: false,
-      error: err.message
-    });
-  }
 });
 
 
