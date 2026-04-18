@@ -35,7 +35,11 @@ const LANG = {
     waiting: "መጠባበቅ",
     countdown_state: "መቆጠር",
     playing: "መጫወት",
-    ended: "ተጠናቋል"
+    ended: "ተጠናቋል",
+    you_won: "አሸንፈዋል!",
+    congratulations: "እንኳን ደስ አለህ! ካርድ #",
+    game_over: "ጨዋታው ተጠናቋል",
+    winner_cards: "አሸናፊ ካርዶች"
   },
   en: {
     select_card: "Select Your Card",
@@ -55,7 +59,11 @@ const LANG = {
     waiting: "Waiting",
     countdown_state: "Countdown",
     playing: "Playing",
-    ended: "Ended"
+    ended: "Ended",
+    you_won: "YOU WON!",
+    congratulations: "Congratulations! You won with card #",
+    game_over: "Game Over!",
+    winner_cards: "Winner card(s):"
   },
   or: {
     select_card: "Kaardii Filadhu",
@@ -75,7 +83,11 @@ const LANG = {
     waiting: "Eegaa jira",
     countdown_state: "Lakkoofsa",
     playing: "Taphachaa jira",
-    ended: "Xumurameera"
+    ended: "Xumurameera",
+    you_won: "Ati mo'atte!",
+    congratulations: "Baga gammaddan! Kaardii #",
+    game_over: "Tapha xumurameera",
+    winner_cards: "Kaardii mo'ataa"
   }
 };
 let currentLang = "am"; // default
@@ -533,8 +545,8 @@ function showWinnerPopup(winnerCard) {
       box-shadow:0 4px 15px rgba(0,0,0,0.4);
       animation: popIn 0.5s ease-out;
     ">
-      <h2>🎉 YOU WON! 🎉</h2>
-      <p>Congratulations! You won with card #${winnerCard.card_id.replace("card","")}</p>
+     <h2>🎉 ${t("you_won")} 🎉</h2>
+    <p>${t("congratulations")} ${winnerCard.card_id.replace("card","")}</p>
       <div id="winnerCardContainer"></div>
     </div>
   `;
@@ -557,8 +569,8 @@ function showLoserPopup(winnerCards) {
       text-align:center;
       box-shadow:0 4px 15px rgba(0,0,0,0.4);
     ">
-      <h2>Game Over!</h2>
-      <p>Winner card(s):</p>
+     <h2>${t("game_over")}</h2>
+    <p>${t("winner_cards")}:</p>
   `;
 
   winnerCards.forEach((w, index) => {
