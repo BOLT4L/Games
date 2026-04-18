@@ -169,27 +169,6 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await main_menu(update, context)
 
-async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
-    uid = update.effective_user.id
-    import util
-    lang = await util.get_user_lang(uid)
-    context.user_data["lang"] = lang
-
-    if text == TEXT[lang]["deposit"]:
-        return await start_deposit(update, context)
-
-    elif text == TEXT[lang]["withdraw"]:
-        return await start_withdraw(update, context)
-
-    elif text == TEXT[lang]["play"]:
-        return await show_rooms(update, context)
-
-    elif text in ["Change Language", TEXT[lang].get("change_lang", "")]:
-        return await change_language(update, context)
-
-    else:
-        await update.message.reply_text(TEXT[lang]["unknown_option"])
 
 async def demo_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -373,25 +352,20 @@ async def demo_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, lang=None):
     if not lang:
-        lang = context.user_data.get("lang", "am")  # fallback to stored language
+        lang = context.user_data.get("lang", "am")
 
-    # Determine chat_id depending on message or callback
-    if hasattr(update, "callback_query") and update.callback_query:
-        chat_id = update.callback_query.from_user.id
-    else:
-        chat_id = update.message.chat.id
+    chat_id = update.effective_chat.id
 
-    # Localized buttons
-    keyboard = [
-        [TEXT[lang]["deposit"], TEXT[lang]["withdraw"]],
-        [TEXT[lang]["play"], "Change Language"]
-    ]
+    text = f"""
+            📋 {TEXT[lang].get("menu_text", "Menu")}
 
-    await context.bot.send_message(
-        chat_id,
-        TEXT[lang].get("menu_text", "Menu"),
-        reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-    )
+            💰 {TEXT[lang]["deposit"]} → /deposit  
+            💸 {TEXT[lang]["withdraw"]} → /withdraw  
+            🎮 {TEXT[lang]["play"]} → /playgame  
+            🌐 {TEXT[lang]["change_lang"]} → /changelanguage
+            """
+
+    await context.bot.send_message(chat_id, text)
 #---------------------SEND message ------------
 
 async def sendmessage_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -570,7 +544,7 @@ async def deposit_receipt_received(update: Update, context: ContextTypes.DEFAULT
     if not is_valid:
         return await cancel_process(update, context, result)
 
-    body_text = f"Deposit request\nUser:{uid}\nAmount:{amount}\nReceipt:{receipt}\nURL:{url}"
+    body_text = f"Deposit request\nUser:{uid}\nAmount:{amount}\nReceipt:{receipt}\nURL: {url}"
     request_id = util.new_admin_request_id()
     keyboard = [[
         InlineKeyboardButton(
@@ -825,7 +799,7 @@ def main():
     app.add_handler(CallbackQueryHandler(language_selected, pattern="lang_"))
     
     deposit_conv = ConversationHandler(
-        entry_points=[MessageHandler(filters.Regex(f"^{TEXT['en']['deposit']}$|^{TEXT['am']['deposit']}$|^{TEXT['om']['deposit']}$"), start_deposit)],
+        entry_points=[CommandHandler("deposit", start_deposit)],
         states={
             CHOOSING_DEPOSIT_AMOUNT: [
                 CallbackQueryHandler(deposit_amount_chosen, pattern="^dep_")
@@ -837,7 +811,7 @@ def main():
         fallbacks=[CommandHandler("cancel", cancel)],
     )
     withdraw_conv = ConversationHandler(
-        entry_points=[MessageHandler(filters.Regex(f"^{TEXT['en']['withdraw']}$|^{TEXT['am']['withdraw']}$|^{TEXT['om']['withdraw']}$"), start_withdraw)],
+        entry_points=[CommandHandler("withdraw", start_withdraw)],
         states={
             WAITING_WITHDRAW_AMOUNT: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, withdraw_amount_received)
@@ -880,7 +854,10 @@ def main():
     app.add_handler(CommandHandler("stats", stats_command))
     app.add_handler(deposit_conv)
     app.add_handler(withdraw_conv)
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, menu_handler))  
+    app.add_handler(CommandHandler("deposit", start_deposit))
+    app.add_handler(CommandHandler("withdraw", start_withdraw))
+    app.add_handler(CommandHandler("playgame", show_rooms))
+    app.add_handler(CommandHandler("changelanguage", change_language))
     app.add_handler(CallbackQueryHandler(room_selected, pattern="^room_"))
     print("Bot Running...")
 

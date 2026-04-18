@@ -12,6 +12,10 @@ app.use(bodyParser.json());
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
+function getDrawnNumbersFromCard(cardNumbers, drawnNumbers) {
+  const drawnSet = new Set(drawnNumbers);
+  return cardNumbers.filter(n => drawnSet.has(n));
+}
 async function waitForNextGame(roomId) {
   console.log("⏳ Waiting for game to end...");
 
@@ -21,7 +25,7 @@ async function waitForNextGame(roomId) {
       headers: { "ngrok-skip-browser-warning": "true" }
     });
 
-    if (!res.ok) {
+    if (!res.ok) {``
       await sleep(1000);
       continue;
     }
@@ -60,9 +64,7 @@ async function waitForNextGame(roomId) {
   }
 }
 function checkWinningPattern(card, drawnNumbers) {
-  // Center cell is stored as 0 in cards.json (free space); it is never "drawn" (balls are 1–75).
-  const drawn = new Set(drawnNumbers);
-  const isMarked = (n) => n === 0 || drawn.has(n);
+  const marked = new Set(drawnNumbers);
 
   const rows = [
     [card[0], card[1], card[2], card[3], card[4]],
@@ -73,7 +75,7 @@ function checkWinningPattern(card, drawnNumbers) {
   ];
 
   for (let row of rows) {
-    if (row.every(n => isMarked(n))) return row;
+    if (row.every(n => marked.has(n))) return row;
   }
 
   const cols = [
@@ -85,17 +87,17 @@ function checkWinningPattern(card, drawnNumbers) {
   ];
 
   for (let col of cols) {
-    if (col.every(n => isMarked(n))) return col;
+    if (col.every(n => marked.has(n))) return col;
   }
 
   const diag1 = [card[0], card[6], card[12], card[18], card[24]];
   const diag2 = [card[4], card[8], card[12], card[16], card[20]];
 
-  if (diag1.every(n => isMarked(n))) return diag1;
-  if (diag2.every(n => isMarked(n))) return diag2;
+  if (diag1.every(n => marked.has(n))) return diag1;
+  if (diag2.every(n => marked.has(n))) return diag2;
 
   const corners = [card[0], card[4], card[20], card[24]];
-  if (corners.every(n => isMarked(n))) return corners;
+  if (corners.every(n => marked.has(n))) return corners;
 
   return null;
 }
@@ -166,7 +168,7 @@ for (let userId of shuffledUsers) {
   }
 
   const userCards = latestState.cards
-    .filter(c => String(c[1]) === String(userId))
+    .filter(c => c[1] === userId)
     .map(c => c[0]);
 
   if (userCards.length > 0) continue;
@@ -227,10 +229,10 @@ if (result.success) {
     console.log("⏳ Waiting before next game...");
     await sleep(2000);
 
-    // After picks, wait until play starts; then poll every 1s and check every demo card in the room.
+    // After all demo users have picked their cards, monitor bingo until bingo is called or game ends.
     if (Object.keys(userPickedCards).length > 0) {
       console.log("🚀 Starting bingo monitoring for this round...");
-      await monitorBingo(roomId, demoUsers, allCards, fetchRoomState);
+      await monitorBingo(roomId, userPickedCards, allCards);
     } else {
       console.log("ℹ️ No demo users picked cards this round; skipping bingo monitoring.");
     }
@@ -258,90 +260,50 @@ async function callBingo(roomId, userId, cardId, pattern) {
     })
   });
 
-  let data = {};
-  try {
-    data = await res.json();
-  } catch {
-    console.log("⚠️ Bingo response not JSON");
-    return false;
-  }
-  if (!res.ok || !data.success) {
-    console.log("⚠️ Bingo API rejected:", res.status, data);
-  }
-  return Boolean(data.success);
+  const data = await res.json();
+  return data.success;
 }
+async function monitorBingo(roomId, userPickedCards, allCards) {
+  console.log("👀 Monitoring bingo...");
 
-/** Build userId -> [{ cardId, numbers }] for demo players from live room state. */
-function demoCardsFromRoomState(roomState, demoUserIds, allCards) {
-  const demoSet = new Set(demoUserIds.map((id) => String(id)));
-  const byUser = {};
-  for (const pair of roomState.cards || []) {
-    const cardId = pair[0];
-    const playerId = String(pair[1]);
-    if (!demoSet.has(playerId)) continue;
-    const numbers = allCards[cardId];
-    if (!numbers) continue;
-    if (!byUser[playerId]) byUser[playerId] = [];
-    byUser[playerId].push({ cardId, numbers });
-  }
-  return byUser;
-}
+  let bingoCalled = false;
 
-async function monitorBingo(roomId, demoUserIds, allCards, fetchRoomState) {
-  console.log("⏳ Waiting for room to enter playing...");
+  while (!bingoCalled) {
+    const res = await fetch(`${API_BASE}/room/${roomId}/state`, {
+      headers: { "ngrok-skip-browser-warning": "true" }
+    });
 
-  let data = await fetchRoomState();
-  while (data && data.state !== "playing" && data.state !== "ended") {
-    await sleep(1000);
-    data = await fetchRoomState();
-  }
-
-  if (!data || data.state === "ended") {
-    console.log("🛑 Room never reached playing (or already ended).");
-    return false;
-  }
-
-  console.log("👀 Monitoring all demo cards each second while playing...");
-  let lastDrawnCount = -1;
-
-  while (true) {
-    data = await fetchRoomState();
-
-    if (!data) {
+    if (!res.ok) {
       await sleep(1000);
       continue;
     }
 
-    if (data.state === "ended") {
+    const data = await res.json();
+    const state = data.state;
+    if (state === "ended") {
       console.log("🛑 Game ended before a demo bingo call succeeded.");
       return false;
     }
 
-    if (data.state !== "playing") {
-      await sleep(1000);
-      continue;
-    }
-
     const drawnNumbers = data.drawn_numbers || [];
-    if (drawnNumbers.length !== lastDrawnCount) {
-      lastDrawnCount = drawnNumbers.length;
-      console.log(`🔢 Balls drawn: ${lastDrawnCount}`);
-    }
 
-    const userPickedCards = demoCardsFromRoomState(data, demoUserIds, allCards);
+    for (let userId in userPickedCards) {
+      for (let entry of userPickedCards[userId]) {
+        const { cardId, numbers } = entry;
 
-    for (const userId of Object.keys(userPickedCards)) {
-      for (const { cardId, numbers } of userPickedCards[userId]) {
         const pattern = checkWinningPattern(numbers, drawnNumbers);
 
         if (pattern) {
-          console.log(`🏆 BINGO FOUND! User ${userId}, card ${cardId}`);
+          const matchedNumbers = getDrawnNumbersFromCard(numbers, drawnNumbers);
+          pattern = [...new Set([...pattern, ...matchedNumbers])];
+          console.log(`🏆 BINGO FOUND! User ${userId}`);
 
           const success = await callBingo(roomId, userId, cardId, pattern);
 
           if (success) {
             console.log("🎉 BINGO CALLED SUCCESSFULLY");
-            return true;
+            bingoCalled = true;
+            return;
           }
         }
       }
