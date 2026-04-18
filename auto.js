@@ -291,7 +291,7 @@ async function monitorBingo(roomId, userPickedCards, allCards) {
       for (let entry of userPickedCards[userId]) {
         const { cardId, numbers } = entry;
 
-        const pattern = checkWinningPattern(numbers, drawnNumbers);
+        let pattern = checkWinningPattern(numbers, drawnNumbers);
 
         if (pattern) {
           const matchedNumbers = getDrawnNumbersFromCard(numbers, drawnNumbers);
