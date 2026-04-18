@@ -3,6 +3,7 @@ import json
 from util import *
 from datetime import datetime, timezone
 RUNTIME_FILE = "runtime.json"
+LAST_DEMO_BALANCE_CHECK = 0
 def load_runtime():
     global ROOM_RUNTIME
     try:
@@ -19,12 +20,29 @@ ROOM_RUNTIME = load_runtime()
 # Load available cards from cards.json
 with open("cards.json", "r") as f:
     AVAILABLE_CARDS = json.load(f)
+def check_demo_balances():
+    print("Running demo balance check...")
+
+    for user_id in range(1, 31):  # 1 to 30
+        ref = db.reference(f"/users/{user_id}/balance")
+        balance = ref.get()
+
+        if balance is None:
+            continue
+
+        if balance > 100:
+            ref.set(100)
+            print(f"User {user_id} balance reset to 100")
 def game_worker(socketio):
     print("Game worker started...")
 
     while True:
         try:
             process_rooms(socketio)
+            now = time.time()
+            if now - LAST_DEMO_BALANCE_CHECK > 7200:
+                check_demo_balances()
+                LAST_DEMO_BALANCE_CHECK = now
         except Exception as e:
             print("Worker error:", e)
 
@@ -110,14 +128,15 @@ def handle_countdown(room_id):
         for card in cards.values():
             uid = card["player_id"]
             player_cards[uid] = player_cards.get(uid, 0) + 1
-
+        print(player_cards)
         total_cards = 0
         for uid, count in player_cards.items():
             deduct_user_balance(uid, bet)
             increment_games_played(uid)
             total_cards += count
-
+   
         runtime["pot"] = total_cards * bet * 0.8
+        print(runtime["pot"])
 
         return True
 

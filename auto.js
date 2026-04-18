@@ -60,7 +60,9 @@ async function waitForNextGame(roomId) {
   }
 }
 function checkWinningPattern(card, drawnNumbers) {
-  const marked = new Set(drawnNumbers);
+  // Center cell is stored as 0 in cards.json (free space); it is never "drawn" (balls are 1–75).
+  const drawn = new Set(drawnNumbers);
+  const isMarked = (n) => n === 0 || drawn.has(n);
 
   const rows = [
     [card[0], card[1], card[2], card[3], card[4]],
@@ -71,7 +73,7 @@ function checkWinningPattern(card, drawnNumbers) {
   ];
 
   for (let row of rows) {
-    if (row.every(n => marked.has(n))) return row;
+    if (row.every(n => isMarked(n))) return row;
   }
 
   const cols = [
@@ -83,17 +85,17 @@ function checkWinningPattern(card, drawnNumbers) {
   ];
 
   for (let col of cols) {
-    if (col.every(n => marked.has(n))) return col;
+    if (col.every(n => isMarked(n))) return col;
   }
 
   const diag1 = [card[0], card[6], card[12], card[18], card[24]];
   const diag2 = [card[4], card[8], card[12], card[16], card[20]];
 
-  if (diag1.every(n => marked.has(n))) return diag1;
-  if (diag2.every(n => marked.has(n))) return diag2;
+  if (diag1.every(n => isMarked(n))) return diag1;
+  if (diag2.every(n => isMarked(n))) return diag2;
 
   const corners = [card[0], card[4], card[20], card[24]];
-  if (corners.every(n => marked.has(n))) return corners;
+  if (corners.every(n => isMarked(n))) return corners;
 
   return null;
 }
