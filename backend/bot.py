@@ -357,12 +357,12 @@ async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, lang=Non
     chat_id = update.effective_chat.id
 
     text = f"""
-            📋 {TEXT[lang].get("menu_text", "Menu")}
+        📋 {TEXT[lang].get("menu_text", "Menu")}
 
-            💰 {TEXT[lang]["deposit"]} → /deposit  
-            💸 {TEXT[lang]["withdraw"]} → /withdraw  
-            🎮 {TEXT[lang]["play"]} → /playgame  
-            🌐 {TEXT[lang]["change_lang"]} → /changelanguage
+        🎮 {TEXT[lang]["play"]} → /playgame   
+        💰 {TEXT[lang]["deposit"]} → /deposit  
+        💸 {TEXT[lang]["withdraw"]} → /withdraw    
+        🌐 {TEXT[lang]["change_lang"]} → /changelanguage
             """
 
     await context.bot.send_message(chat_id, text)
