@@ -3,9 +3,12 @@ import bodyParser from "body-parser";
 import fetch from "node-fetch";
 import fs from "fs";
 
+import path from "path";
+import { fileURLToPath } from "url";
 const app = express();
 const PORT = process.env.PORT || 4000;
-const API_BASE = "https://cicely-pedodontic-nonnegligibly.ngrok-free.dev";
+const API_BASE =
+  process.env.API_BASE || "https://cicely-pedodontic-nonnegligibly.ngrok-free.dev";
 
 app.use(bodyParser.json());
 
@@ -25,7 +28,7 @@ async function waitForNextGame(roomId) {
       headers: { "ngrok-skip-browser-warning": "true" }
     });
 
-    if (!res.ok) {``
+    if (!res.ok) {
       await sleep(1000);
       continue;
     }
@@ -130,7 +133,13 @@ async function playGames(roomId, quantity, games) {
     return await res.json(); // return full response
   }
 
-  const allCards = JSON.parse(fs.readFileSync("cards.json", "utf-8"));
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const allCards = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "cards.json"), "utf-8")
+);
   const allCardIds = Object.keys(allCards);
 
   let resultSummary = {};
