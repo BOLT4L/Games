@@ -195,33 +195,80 @@ async def demo_quantity(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("How many games:")
     return DEMO_GAMES
-import requests
-import json
-import aiohttp
-
 import asyncio
-
+import aiohttp
 async def run_autobet(payload, chat_id, context):
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(AUTOBET_API, json=payload) as resp:
-                result = await resp.json()
+        status_msg = await context.bot.send_message(
+            chat_id,
+            "⏳ Processing your request... please wait"
+        )
 
-        if result.get("success"):
-            await context.bot.send_message(
-                chat_id,
-                f"✅ Done!\nGames: {result.get('gamesPlayed')}\nCards: {result.get('pickedCards')}"
+        async def notify_progress():
+            while True:
+                await asyncio.sleep(10)
+                try:
+                    await context.bot.edit_message_text(
+                        chat_id=chat_id,
+                        message_id=status_msg.message_id,
+                        text="⏳ Still working... please wait"
+                    )
+                except:
+                    pass
+
+        progress_task = asyncio.create_task(notify_progress())
+
+        total_quantity = payload.get("quantity", 1)
+        batch_size = 4
+
+        # ✅ Split into chunks of max 4
+        batches = []
+        while total_quantity > 0:
+            current = min(batch_size, total_quantity)
+            batches.append(current)
+            total_quantity -= current
+
+        total_games = 0
+        total_cards = 0
+
+        async with aiohttp.ClientSession() as session:
+            for qty in batches:
+                batch_payload = payload.copy()
+                batch_payload["quantity"] = qty
+
+                async with session.post(AUTOBET_API, json=batch_payload, timeout=300) as resp:
+                    result = await resp.json()
+
+                    if not result.get("success"):
+                        raise Exception(result.get("error"))
+
+                    # accumulate results
+                    total_games += result.get("gamesPlayed", 0)
+                    total_cards += result.get("pickedCards", 0)
+
+        progress_task.cancel()
+
+        await context.bot.edit_message_text(
+            chat_id=chat_id,
+            message_id=status_msg.message_id,
+            text=(
+                f"✅ Done!\n"
+                f"🎮 Games: {total_games}\n"
+                f"🃏 Cards: {total_cards}"
             )
-        else:
-            await context.bot.send_message(
-                chat_id,
-                f"❌ Failed: {result.get('error')}"
-            )
+        )
+
+    except asyncio.TimeoutError:
+        await context.bot.send_message(
+            chat_id,
+            "⏰ Request took too long. Try fewer games."
+        )
 
     except Exception as e:
-        await context.bot.send_message(chat_id, f"❌ Error: {str(e)}")
-
-
+        await context.bot.send_message(
+            chat_id,
+            f"❌ Error: {str(e)}"
+        )
 async def demo_games(update: Update, context: ContextTypes.DEFAULT_TYPE):
     games = update.message.text.strip()
 
