@@ -17,7 +17,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 # ---------------- CONFIG ----------------
-
+telegram_app = None
 CHOOSING_DEPOSIT_AMOUNT, WAITING_DEPOSIT_RECEIPT = range(2)
 SEND_TARGET, SEND_CONTENT = range(100, 102)
 WAITING_WITHDRAW_AMOUNT = range(2, 3)
@@ -197,78 +197,19 @@ async def demo_quantity(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return DEMO_GAMES
 import asyncio
 import aiohttp
+
 async def run_autobet(payload, chat_id, context):
     try:
-        status_msg = await context.bot.send_message(
+        await context.bot.send_message(
             chat_id,
-            "⏳ Processing your request... please wait"
+            "✅ AutoBet request sent successfully!"
         )
-
-        async def notify_progress():
-            while True:
-                await asyncio.sleep(10)
-                try:
-                    await context.bot.edit_message_text(
-                        chat_id=chat_id,
-                        message_id=status_msg.message_id,
-                        text="⏳ Still working... please wait"
-                    )
-                except:
-                    pass
-
-        progress_task = asyncio.create_task(notify_progress())
-
-        total_quantity = payload.get("quantity", 1)
-        batch_size = 4
-
-        # ✅ Split into chunks of max 4
-        batches = []
-        while total_quantity > 0:
-            current = min(batch_size, total_quantity)
-            batches.append(current)
-            total_quantity -= current
-
-        total_games = 0
-        total_cards = 0
 
         async with aiohttp.ClientSession() as session:
-            for qty in batches:
-                batch_payload = payload.copy()
-                batch_payload["quantity"] = qty
-
-                async with session.post(AUTOBET_API, json=batch_payload, timeout=300) as resp:
-                    result = await resp.json()
-
-                    if not result.get("success"):
-                        raise Exception(result.get("error"))
-
-                    # accumulate results
-                    total_games += result.get("gamesPlayed", 0)
-                    total_cards += result.get("pickedCards", 0)
-
-        progress_task.cancel()
-
-        await context.bot.edit_message_text(
-            chat_id=chat_id,
-            message_id=status_msg.message_id,
-            text=(
-                f"✅ Done!\n"
-                f"🎮 Games: {total_games}\n"
-                f"🃏 Cards: {total_cards}"
-            )
-        )
-
-    except asyncio.TimeoutError:
-        await context.bot.send_message(
-            chat_id,
-            "⏰ Request took too long. Try fewer games."
-        )
+            await session.post(AUTOBET_API, json=payload)
 
     except Exception as e:
-        await context.bot.send_message(
-            chat_id,
-            f"❌ Error: {str(e)}"
-        )
+        await context.bot.send_message(chat_id, f"❌ Error: {str(e)}")
 async def demo_games(update: Update, context: ContextTypes.DEFAULT_TYPE):
     games = update.message.text.strip()
 
@@ -282,6 +223,7 @@ async def demo_games(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "roomId": context.user_data.get("demo_room"),
         "quantity": context.user_data.get("demo_quantity"),
         "games": context.user_data.get("demo_games"),
+        "callbackUrl": "http://18.191.217.162/autobet-callback"
     }
 
     # ✅ Respond immediately
@@ -309,6 +251,36 @@ async def add_demo_users_start(update: Update, context: ContextTypes.DEFAULT_TYP
     
     await update.message.reply_text("Enter amount to add for demo users:")
     return DEMO_AMOUNT
+
+async def broadcast_message(users, update, context):
+    for uid in users:
+        try:
+            if update.message.text:
+                await context.bot.send_message(uid, update.message.text)
+
+            elif update.message.photo:
+                await context.bot.send_photo(
+                    uid,
+                    photo=update.message.photo[-1].file_id,
+                    caption=update.message.caption or ""
+                )
+
+            elif update.message.video:
+                await context.bot.send_video(
+                    uid,
+                    video=update.message.video.file_id,
+                    caption=update.message.caption or ""
+                )
+
+            elif update.message.document:
+                await context.bot.send_document(
+                    uid,
+                    document=update.message.document.file_id,
+                    caption=update.message.caption or ""
+                )
+
+        except Exception as e:
+            print(f"Failed to send to {uid}: {e}")
 
 async def add_demo_users_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     amt = update.message.text.strip()
@@ -440,40 +412,12 @@ async def send_content_received(update: Update, context: ContextTypes.DEFAULT_TY
     else:
         users = [target]
 
-    for uid in users:
-        try:
-            # TEXT
-            if update.message.text:
-                await context.bot.send_message(uid, update.message.text)
+    await update.message.reply_text("⏳ Sending message in background...")
 
-            # PHOTO
-            elif update.message.photo:
-                await context.bot.send_photo(
-                    uid,
-                    photo=update.message.photo[-1].file_id,
-                    caption=update.message.caption or ""
-                )
+    asyncio.create_task(
+        broadcast_message(users, update, context)
+    )
 
-            # VIDEO
-            elif update.message.video:
-                await context.bot.send_video(
-                    uid,
-                    video=update.message.video.file_id,
-                    caption=update.message.caption or ""
-                )
-
-            # DOCUMENT
-            elif update.message.document:
-                await context.bot.send_document(
-                    uid,
-                    document=update.message.document.file_id,
-                    caption=update.message.caption or ""
-                )
-
-        except Exception as e:
-            print(f"Failed to send to {uid}: {e}")
-
-    await update.message.reply_text("✅ Message sent.")
     return ConversationHandler.END
 async def send_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("❌ Send message cancelled.")
@@ -832,10 +776,35 @@ async def room_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 # ---------------- MAIN ----------------
 
+from fastapi import FastAPI, Request
+import asyncio
+
+app = FastAPI()
+
+@app.post("/autobet-callback")
+async def autobet_callback(req: Request):
+    data = await req.json()
+
+    # send message to admins
+    for admin_id in ADMIN_IDS:
+        if data.get("success"):
+            text = (
+                f"✅ AutoBet Finished\n"
+                f"🎮 Games: {data.get('gamesPlayed')}\n"
+                f"🃏 Cards: {data.get('pickedCards')}"
+            )
+        else:
+            text = f"❌ AutoBet Failed: {data.get('error')}"
+
+        await telegram_app.bot.send_message(admin_id, text)
+
+    return {"ok": True}
 def main():
+    global telegram_app
 
+    
     app = Application.builder().token(BOT_TOKEN).build()
-
+    telegram_app = app
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("changelanguage", change_language))
     app.add_handler(MessageHandler(filters.CONTACT, contact_handler))

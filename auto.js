@@ -323,30 +323,43 @@ async function monitorBingo(roomId, userPickedCards, allCards) {
 }
 // ---------------- POST /play ----------------
 app.post("/play", async (req, res) => {
-  const { roomId, quantity, games } = req.body;
+  const { roomId, quantity, games, callbackUrl } = req.body;
 
-  if (!roomId || !quantity || !games) {
-    return res.status(400).json({
-      error: "roomId, quantity, and games are required"
-    });
-  }
+  // ✅ respond immediately
+  res.json({ success: true, message: "Job started" });
 
-  try {
-    const result = await playGames(roomId, quantity, games);
-    res.json({
-      success: true,
-      gamesPlayed: games,
-      pickedCards: result
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      success: false,
-      error: err.message
-    });
-  }
+  // ✅ run in background
+  (async () => {
+    try {
+      const result = await playGames(roomId, quantity, games);
+
+      // ✅ notify bot when done
+      if (callbackUrl) {
+        await fetch(callbackUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            success: true,
+            gamesPlayed: games,
+            pickedCards: result
+          })
+        });
+      }
+
+    } catch (err) {
+      if (callbackUrl) {
+        await fetch(callbackUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            success: false,
+            error: err.message
+          })
+        });
+      }
+    }
+  })();
 });
-
 
 app.listen(PORT, () => {
   console.log(`🚀 Game bot server running on port ${PORT}`);

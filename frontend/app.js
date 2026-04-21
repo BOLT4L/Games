@@ -263,7 +263,7 @@ function renderGameArena(state){
     app.innerHTML = `
       <h2>${t("game_arena")}</h2>
 
-      <div class="arena scale-1.75x">
+      <div class="arena scale-2x">
         <div id="calledBoard"></div>
         <div id="playerCard"></div>
       </div>
