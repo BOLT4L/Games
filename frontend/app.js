@@ -922,7 +922,7 @@ let lastRoomState = null;
 let socket;
 
 function initSocket() {
-  socket = io("https://cicely-pedodontic-nonnegligibly.ngrok-free.dev", {
+  socket = io("https://cleaner-logical-entitled-handling.trycloudflare.com", {
     transports: ["websocket"],
   });
 
