@@ -35,7 +35,7 @@ def check_demo_balances():
             print(f"User {user_id} balance reset to 100")
 def game_worker(socketio):
     print("Game worker started...")
-
+    global LAST_DEMO_BALANCE_CHECK
     while True:
         try:
             process_rooms(socketio)

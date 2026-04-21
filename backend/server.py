@@ -213,7 +213,13 @@ from worker import game_worker
 def start_worker():
     socketio.start_background_task(game_worker, socketio)
 if __name__ == '__main__':
-    
     start_worker()
     load_runtime()
-    socketio.run(app, host="0.0.0.0", port=3000, debug=False, allow_unsafe_werkzeug=True)
+    socketio.run(
+        app,
+        host="0.0.0.0",
+        port=3000,
+        debug=False,
+        use_reloader=False,
+        server='eventlet'
+    )

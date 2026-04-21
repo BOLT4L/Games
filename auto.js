@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 const app = express();
 const PORT = process.env.PORT || 4000;
 const API_BASE =
-  process.env.API_BASE || "https://cicely-pedodontic-nonnegligibly.ngrok-free.dev";
+  process.env.API_BASE || "https://cleaner-logical-entitled-handling.trycloudflare.com";
 
 app.use(bodyParser.json());
 
