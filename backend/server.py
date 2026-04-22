@@ -2,7 +2,7 @@ from flask import Flask, jsonify, request
 from worker import  pick_card, unpick_card, bingo_called , get_room_cards_response,load_runtime , get_winners_response
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room,leave_room
-
+from datetime import datetime as Datetime
 import worker
 
 ROOM_RUNTIME = worker.ROOM_RUNTIME
@@ -81,7 +81,7 @@ def handle_bingo(data):
 
 def build_room_state(room_id):
     runtime = ROOM_RUNTIME.get(room_id)
-
+    print(f"[STATE] Building state for room: {runtime}")
     if not runtime:
         return {
             "room_id": room_id,
@@ -98,6 +98,7 @@ def build_room_state(room_id):
         "countdown": runtime.get("countdown", 0),
         "state": runtime.get("state"),
         "winners": runtime.get("winners", []),
+        "bingo_called": runtime.get("bingo_called", []),
         "winner_cards": runtime.get("winner_cards", [])
     }
 
@@ -105,6 +106,7 @@ def build_room_state(room_id):
 
 @app.route('/room/<room_id>/state', methods=['GET'])
 def get_room_state(room_id):
+    ROOM_RUNTIME = worker.ROOM_RUNTIME
     runtime = ROOM_RUNTIME.get(room_id)
     print(runtime)
     if not runtime:
@@ -113,18 +115,7 @@ def get_room_state(room_id):
             "exists": False,
             "message": "Room not initialized"
         }), 404
-    return jsonify({
-        "room_id": room_id,
-        "players": runtime.get("players", []),
-        "bet_amount": runtime.get("betAmount", 0),
-        "cards": get_room_cards_response(room_id),
-        "pot": runtime.get("pot", 0),
-        "drawn_numbers": list(runtime.get("drawn_numbers", [])),
-        "countdown": runtime.get("countdown", 0),
-        "state": runtime.get("state", "waiting"),
-        "winners": get_winners_response(runtime),
-        "winner_cards": list(runtime.get("winner_cards", []))
-    })
+    return jsonify(build_room_state(room_id))
 # Root route (optional)
 @app.route('/room/<room_id>/pick', methods=['POST'])
 def pick(room_id):

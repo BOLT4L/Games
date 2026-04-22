@@ -236,7 +236,7 @@ def bingo_called(room_id, card_id, pattern_numbers,player_id):
     card = cards[card_id]
     card_numbers = card["numbers"]
     print(card_numbers)
-
+    runtime["bingo_called"].append(player_id)
     # check numbers belong to card
     for n in pattern_numbers:
         if n not in card_numbers:
@@ -355,6 +355,7 @@ def end_game(room_id):
     if not runtime:
         return
     runtime["state"] = "ended"
+    runtime["bingo_called"] = []
     runtime["drawing_stopped"] = True
     runtime["state_started_at"] = time.time()
 

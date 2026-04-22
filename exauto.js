@@ -2,7 +2,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import fetch from "node-fetch";
 import fs from "fs";
-import { io } from "socket.io-client";
+
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -105,41 +105,12 @@ function checkWinningPattern(card, drawnNumbers) {
 async function playGames(roomId, quantity, games) {
   const demoUsers = ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30"];
   // userId -> [{cardId, numbers}]
-  let roomState = null;
-    let stateReady = false;
-    let socket;
-   function initSocket() {
-        console.log("🔌 Connecting to socket for room:", roomId) ;
-        socket = io("https://cleaner-logical-entitled-handling.trycloudflare.com", {
-          transports: ["websocket"],
-        });
-
-      console.log(socket)
-        socket.on("connect", () => {
-          console.log("✅ Connected:", socket.id);
-          socket.emit("join_room", { roomId });
-        });
-
-        socket.on("state_update", (state) => {
-          roomState = state;
-          stateReady = true;
-          console.log("📡 STATE UPDATED");
-        });
-
-        socket.on("disconnect", (reason) => {
-          console.log("❌ Disconnected:", reason);
-        });
-      }
-  initSocket();
-  function getRoomState() {
-  return roomState;
-}
- async function waitForStateReady() {
-  while (!stateReady || !roomState) {
-    console.log("⏳ Waiting for socket state...");
-    await sleep(500);
+  async function fetchRoomState() {
+    const res = await fetch(`${API_BASE}/room/${roomId}/state`, );
+    if (!res.ok) return null;
+    return await res.json();
   }
-}
+
   async function pickCard(userId, cardId, betAmount = 0) {
     const res = await fetch(`${API_BASE}/room/${roomId}/pick`, {
       method: "POST",
@@ -172,11 +143,9 @@ const allCards = JSON.parse(
     console.log(`🎮 Game ${game + 1}/${games}`);
     // Per-game picked cards (don't leak state across rounds)
     const userPickedCards = {};
-  
-    
 
-   await waitForStateReady();
-  const roomState = getRoomState();
+    const roomState = await fetchRoomState();
+
     if (!roomState || !roomState.cards) {
       console.log("Invalid room state");
       break;
@@ -193,13 +162,7 @@ const shuffledUsers = [...demoUsers].sort(() => Math.random() - 0.5);
 for (let userId of shuffledUsers) {
   if (successfulPicks >= quantity) break;
 
-  const latestState = getRoomState();
-
-if (!latestState) {
-  console.log("No socket state yet");
-  continue;
-}
-
+  const latestState = await fetchRoomState();
 
   if (!latestState || !["waiting", "countdown"].includes(latestState.state)) {
     console.log("Room stopped mid-game");
@@ -362,7 +325,7 @@ app.post("/play", async (req, res) => {
   (async () => {
     try {
       const result = await playGames(roomId, quantity, games);
-      
+
       // ✅ notify bot when done
       if (callbackUrl) {
         await fetch(callbackUrl, {

@@ -416,7 +416,6 @@ async function renderGameInfo(state){
 // ------------------ ACTIONS ------------------
 
 function callBingo(pattern) {
-
   if (hasCalledBingo) {
     showPopup("You already called BINGO!");
     return;
@@ -433,9 +432,16 @@ function callBingo(pattern) {
     card_id: myPickedCard,
     pattern: pattern
   });
-
-  hasCalledBingo = true;
 }
+
+// Listen for server response
+socket.on("bingo_result", (data) => {
+  if (data.success) {
+    hasCalledBingo = true;
+  } else {
+    showPopup("Invalid BINGO!");
+  }
+});
 function placeBet(cardId) {
   socket.emit("pick", {
     room_id: ROOM_ID,
@@ -777,6 +783,7 @@ function handleStateUpdate(state) {
   const normalized = normalizeState(state);
   currentState = normalized;
   ROOM_BET_AMOUNT = normalized.bet_amount || 0;
+  hasCalledBingo = normalized.bingo_called.includes(USER_ID);
   // 🔥 ALWAYS update core info
   updateGameInfo(normalized);
   
@@ -868,7 +875,7 @@ function resetPlayerState() {
 
   // mark arena as not initialized (so it rebuilds properly)
   arenaInitialized = false;
-
+  hasCalledBingo = false;
   // also reset resultShown so the next game can show results again
   resultShown = false;
 }
