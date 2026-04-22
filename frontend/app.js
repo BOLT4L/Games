@@ -925,7 +925,9 @@ function handleStateUpdate(state) {
   // 🔥 cards UI sync
   updateCardSelection(normalized);
   renderSelectedCardPreview();
-   if (autoBetEnabled && myPickedCard && autoBetGamesLeft > 0) {
+  const alreadyPicked = (normalized.cards || []).some(c => c[1] === USER_ID);
+
+  if (autoBetEnabled && !alreadyPicked && myPickedCard && autoBetGamesLeft > 0) {
 
     setTimeout(() => {
       socket.emit("pick", {
