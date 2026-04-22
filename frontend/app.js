@@ -435,13 +435,7 @@ function callBingo(pattern) {
 }
 
 // Listen for server response
-socket.on("bingo_result", (data) => {
-  if (data.success) {
-    hasCalledBingo = true;
-  } else {
-    showPopup("Invalid BINGO!");
-  }
-});
+
 function placeBet(cardId) {
   socket.emit("pick", {
     room_id: ROOM_ID,
@@ -981,8 +975,12 @@ function initSocket() {
   });
 
   socket.on("bingo_result", (data) => {
-    if (!data.success) showPopup("Bingo failed");
-  });
+  if (data.success) {
+    hasCalledBingo = true;
+  } else {
+    showPopup("Invalid BINGO!");
+  }
+});
 
   socket.on("disconnect", (reason) => {
     console.log("❌ Disconnected:", reason);
