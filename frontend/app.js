@@ -432,6 +432,7 @@ function callBingo(pattern) {
     card_id: myPickedCard,
     pattern: pattern
   });
+  
 }
 
 // Listen for server response
@@ -975,12 +976,8 @@ function initSocket() {
   });
 
   socket.on("bingo_result", (data) => {
-  if (data.success) {
-    hasCalledBingo = true;
-  } else {
-    showPopup("Invalid BINGO!");
-  }
-});
+    if (!data.success) showPopup("Bingo failed");
+  });
 
   socket.on("disconnect", (reason) => {
     console.log("❌ Disconnected:", reason);
