@@ -559,7 +559,7 @@ def unpick_card(room_id, user_id, card_id):
 def get_room_cards_response(room_id):
     if room_id not in ROOM_RUNTIME:
         return []
-
+ 
     runtime = ROOM_RUNTIME[room_id]
 
     result = []
@@ -568,3 +568,16 @@ def get_room_cards_response(room_id):
         result.append([card_id, card_data["player_id"]])
 
     return result
+
+def get_winners_response(runtime):
+    winners = runtime.get("winners", [])
+
+    result = []
+    for w in winners:
+        result.append({
+            "user_id": w.get("user_id"),
+            "amount": w.get("amount", 0)
+        })
+
+    return result
+

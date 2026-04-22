@@ -20,7 +20,7 @@ load_dotenv()
 telegram_app = None
 CHOOSING_DEPOSIT_AMOUNT, WAITING_DEPOSIT_RECEIPT = range(2)
 SEND_TARGET, SEND_CONTENT = range(100, 102)
-WAITING_WITHDRAW_AMOUNT = range(2, 3)
+WAITING_WITHDRAW_AMOUNT, WAITING_WITHDRAW_ACCOUNT = range(2, 4)
 # ---------------- DEMO AUTO BET ----------------
 DEMO_ROOM, DEMO_QUANTITY, DEMO_GAMES = range(10, 13)
 
@@ -55,7 +55,8 @@ TEXT = {
         "registration_success": "Registration successful!",
         "unknown_option": "Unknown option.",
         "no_rooms": "No rooms available right now.",
-        "room_selected": "Room {room_id} selected. Tap below to enter:"
+        "room_selected": "Room {room_id} selected. Tap below to enter:",
+        "withdraw_account": "📲 Send your Telebirr number OR 🏦 CBE account number:",
     },
 
     "am": {
@@ -66,7 +67,7 @@ TEXT = {
         "play": "ጨዋታ ጀምር",
         "amount": "መጠን ይምረጡ",
         "send_receipt": "የSMS ደረሰኝ ይላኩ",
-        "withdraw_amount": "የሚወጣ መጠን",
+        "withdraw_amount": "የሚወጣ መጠን አስገባ",
         "not_registered": "እባክዎ መመዝገብ ያስፈልጋል",
         "request_sent" : "እናመሰግናለን ጥያቄዎ በተሳካ ሁኔታ ተልኳል ::",
         "not_eligible" : "ገንዘብ ለማውጣት ብቁ አይደሉም",
@@ -76,7 +77,8 @@ TEXT = {
         "registration_success": "ምዝገባ ተሳክቷል!",
         "unknown_option": "ያልታወቀ ምርጫ",
         "no_rooms": "አሁን ምንም ክፍሎች የሉም",
-        "room_selected": "ክፍል {room_id} ተመርጧል። ከታች ይግቡ:"
+        "room_selected": "ክፍል {room_id} ተመርጧል። ከታች ይግቡ:",
+        "withdraw_account": "📲 የቴሌብር ቁጥርዎን ወይም 🏦 የCBE አካውንት ቁጥርዎን ያስገቡ:",
     },
 
     "om": {
@@ -97,7 +99,8 @@ TEXT = {
         "registration_success": "Galmeen milkaa'eera!",
         "unknown_option": "Filannoo hin beekamne",
         "no_rooms": "Amma kutaan hin jiru",
-        "room_selected": "Kutaa {room_id} filatameera. Gadiin seeni:"
+        "room_selected": "Kutaa {room_id} filatameera. Gadiin seeni:",
+        "withdraw_account": "📲 Lakkoofsa Telebirr ykn 🏦 lakkoofsa herrega CBE galchi:",
     }
 }
 ROOM_NAMES = {
@@ -577,27 +580,48 @@ async def withdraw_amount_received(update: Update, context: ContextTypes.DEFAULT
     amount = update.message.text
     uid = str(update.effective_user.id)
     lang = context.user_data.get("lang", "en")
+
     if not amount.isdigit():
         return await cancel_process(update, context, "❌ Invalid amount.")
-    import util
-    
 
     is_ok, msg = check_withdraw_eligibility(uid, amount)
 
     if not is_ok:
         return await cancel_process(update, context, msg)
 
-    body_text = f"Withdraw request\nUser:{uid}\nAmount:{amount}"
+    # ✅ store amount temporarily
+    context.user_data["withdraw_amount"] = amount
+
+    # ✅ ask for payment detail
+    await update.message.reply_text(
+        TEXT[lang]["withdraw_account"]
+    )
+    return WAITING_WITHDRAW_ACCOUNT
+
+async def withdraw_account_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = str(update.effective_user.id)
+    lang = context.user_data.get("lang", "en")
+
+    account = update.message.text.strip()
+    amount = context.user_data.get("withdraw_amount")
+
+    if not account:
+        return await cancel_process(update, context, "❌ Invalid account.")
+
+    # ✅ include account in admin message
+    body_text = (
+        f"Withdraw request\n"
+        f"User:{uid}\n"
+        f"Amount:{amount}\n"
+        f"Account:{account}"
+    )
+
+    import util
     request_id = util.new_admin_request_id()
+
     keyboard = [[
-        InlineKeyboardButton(
-            "Approve",
-            callback_data=f"approve_wd_{request_id}",
-        ),
-        InlineKeyboardButton(
-            "Deny",
-            callback_data=f"deny_wd_{request_id}",
-        ),
+        InlineKeyboardButton("Approve", callback_data=f"approve_wd_{request_id}"),
+        InlineKeyboardButton("Deny", callback_data=f"deny_wd_{request_id}"),
     ]]
 
     admin_messages = {}
@@ -612,11 +636,13 @@ async def withdraw_amount_received(update: Update, context: ContextTypes.DEFAULT
             "message_id": sent.message_id,
         }
 
-    create_pending_admin_request("wd", uid, amount, body_text, admin_messages, request_id=request_id)
+    create_pending_admin_request(
+        "wd", uid, amount, body_text, admin_messages, request_id=request_id
+    )
 
     await update.message.reply_text(TEXT[lang]["request_sent"])
-    return ConversationHandler.END
 
+    return ConversationHandler.END
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Action cancelled.")
     return ConversationHandler.END
@@ -831,6 +857,9 @@ def main():
         states={
             WAITING_WITHDRAW_AMOUNT: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, withdraw_amount_received)
+            ],
+            WAITING_WITHDRAW_ACCOUNT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, withdraw_account_received)
             ],
         },
         fallbacks=[CommandHandler("cancel", cancel)],

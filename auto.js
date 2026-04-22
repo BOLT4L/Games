@@ -1,339 +1,232 @@
 import express from "express";
 import bodyParser from "body-parser";
-import fetch from "node-fetch";
+import { io } from "socket.io-client";
 import fs from "fs";
-
 import path from "path";
 import { fileURLToPath } from "url";
+
 const app = express();
 const PORT = process.env.PORT || 4000;
 const API_BASE =
-  process.env.API_BASE || "https://cleaner-logical-entitled-handling.trycloudflare.com";
+  process.env.API_BASE ||
+  "https://cleaner-logical-entitled-handling.trycloudflare.com";
 
 app.use(bodyParser.json());
 
+// -------------------- Helpers --------------------
 function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
 function getDrawnNumbersFromCard(cardNumbers, drawnNumbers) {
   const drawnSet = new Set(drawnNumbers);
-  return cardNumbers.filter(n => drawnSet.has(n));
+  return cardNumbers.filter((n) => drawnSet.has(n));
 }
-async function waitForNextGame(roomId) {
-  console.log("⏳ Waiting for game to end...");
 
-  // wait until game ends
-  while (true) {
-    const res = await fetch(`${API_BASE}/room/${roomId}/state`, {
-      headers: { "ngrok-skip-browser-warning": "true" }
-    });
-
-    if (!res.ok) {
-      await sleep(1000);
-      continue;
-    }
-
-    const data = await res.json();
-
-    if (data.state === "ended") {
-      console.log("✅ Game ended");
-      break;
-    }
-
-    await sleep(1000);
-  }
-
-  console.log("⏳ Waiting for next game (waiting state)...");
-
-  // wait until new game starts (waiting)
-  while (true) {
-    const res = await fetch(`${API_BASE}/room/${roomId}/state`, {
-      headers: { "ngrok-skip-browser-warning": "true" }
-    });
-
-    if (!res.ok) {
-      await sleep(1000);
-      continue;
-    }
-
-    const data = await res.json();
-
-    if (data.state === "waiting") {
-      console.log("🚀 New game started");
-      break;
-    }
-
-    await sleep(1000);
-  }
-}
 function checkWinningPattern(card, drawnNumbers) {
   const marked = new Set(drawnNumbers);
 
   const rows = [
-    [card[0], card[1], card[2], card[3], card[4]],
-    [card[5], card[6], card[7], card[8], card[9]],
-    [card[10], card[11], card[12], card[13], card[14]],
-    [card[15], card[16], card[17], card[18], card[19]],
-    [card[20], card[21], card[22], card[23], card[24]],
+    [0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],
+    [15,16,17,18,19],[20,21,22,23,24],
   ];
 
   for (let row of rows) {
-    if (row.every(n => marked.has(n))) return row;
+    if (row.every((i) => marked.has(card[i]))) {
+      return row.map(i => card[i]);
+    }
   }
 
   const cols = [
-    [card[0], card[5], card[10], card[15], card[20]],
-    [card[1], card[6], card[11], card[16], card[21]],
-    [card[2], card[7], card[12], card[17], card[22]],
-    [card[3], card[8], card[13], card[18], card[23]],
-    [card[4], card[9], card[14], card[19], card[24]],
+    [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],
+    [3,8,13,18,23],[4,9,14,19,24],
   ];
 
   for (let col of cols) {
-    if (col.every(n => marked.has(n))) return col;
+    if (col.every((i) => marked.has(card[i]))) {
+      return col.map(i => card[i]);
+    }
   }
 
-  const diag1 = [card[0], card[6], card[12], card[18], card[24]];
-  const diag2 = [card[4], card[8], card[12], card[16], card[20]];
+  const diag1 = [0,6,12,18,24];
+  const diag2 = [4,8,12,16,20];
 
-  if (diag1.every(n => marked.has(n))) return diag1;
-  if (diag2.every(n => marked.has(n))) return diag2;
+  if (diag1.every(i => marked.has(card[i]))) return diag1.map(i => card[i]);
+  if (diag2.every(i => marked.has(card[i]))) return diag2.map(i => card[i]);
 
-  const corners = [card[0], card[4], card[20], card[24]];
-  if (corners.every(n => marked.has(n))) return corners;
+  const corners = [0,4,20,24];
+  if (corners.every(i => marked.has(card[i]))) return corners.map(i => card[i]);
 
   return null;
 }
-// 🔥 UPDATED FUNCTION
-async function playGames(roomId, quantity, games) {
-  const demoUsers = ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30"];
-  // userId -> [{cardId, numbers}]
-  async function fetchRoomState() {
-    const res = await fetch(`${API_BASE}/room/${roomId}/state`, {
-      headers: { "ngrok-skip-browser-warning": "true" }
-    });
-    if (!res.ok) return null;
-    return await res.json();
-  }
 
-  async function pickCard(userId, cardId, betAmount = 0) {
-    const res = await fetch(`${API_BASE}/room/${roomId}/pick`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "ngrok-skip-browser-warning": "true"
-      },
-      body: JSON.stringify({
-        user_id: userId,
-        card_id: cardId,
-        bet_amount: betAmount
-      })
-    });
-
-    return await res.json(); // return full response
-  }
-
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const allCards = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "cards.json"), "utf-8")
-);
-  const allCardIds = Object.keys(allCards);
-
-  let resultSummary = {};
-
-  // 🔥 MAIN LOOP (games)
-  for (let game = 0; game < games; game++) {
-    console.log(`🎮 Game ${game + 1}/${games}`);
-    // Per-game picked cards (don't leak state across rounds)
-    const userPickedCards = {};
-
-    const roomState = await fetchRoomState();
-
-    if (!roomState || !roomState.cards) {
-      console.log("Invalid room state");
-      break;
-    }
-
-    if (!["waiting", "countdown"].includes(roomState.state)) {
-      console.log("Room not in valid state, stopping...");
-      break;
-    }
-    const gameBetAmount = Number(roomState.bet_amount ?? roomState.bet ?? 0) || 0;
-let successfulPicks = 0;
-const shuffledUsers = [...demoUsers].sort(() => Math.random() - 0.5);
-
-for (let userId of shuffledUsers) {
-  if (successfulPicks >= quantity) break;
-
-  const latestState = await fetchRoomState();
-
-  if (!latestState || !["waiting", "countdown"].includes(latestState.state)) {
-    console.log("Room stopped mid-game");
-    console.log("⚠️ Game started during picking, proceeding with current cards...");
-    break;
-  }
-
-  const userCards = latestState.cards
-    .filter(c => c[1] === userId)
-    .map(c => c[0]);
-
-  if (userCards.length > 0) continue;
-
-  const takenCards = new Set(latestState.cards.map(c => c[0]));
-  let availableCards = allCardIds.filter(c => !takenCards.has(c));
-
-  if (availableCards.length === 0) {
-    console.log("No cards left");
-    break;
-  }
-
-  // 🎯 Try picking until success OR cards exhausted
-  let picked = false;
-
-  while (availableCards.length > 0 && !picked) {
-    const idx = Math.floor(Math.random() * availableCards.length);
-    const cardId = availableCards[idx];
-
-    const result = await pickCard(userId, cardId, gameBetAmount);
-
-if (result.success) {
-  const cardNumbers = allCards[cardId];
-  if (!userPickedCards[userId]) userPickedCards[userId] = [];
-  userPickedCards[userId].push({ cardId, numbers: cardNumbers });
-
-  if (!resultSummary[userId]) resultSummary[userId] = [];
-  resultSummary[userId].push(cardId);
-
-  picked = true;
-  successfulPicks++;
-} else {
-  if (result.reason === "insufficient_balance") {
-    console.log(`⛔ ${userId} has low balance → skip user`);
-    break; // ❗ stop trying this user
-  }
-
-  if (result.reason === "card_taken") {
-    // ✅ try another card
-    continue;
-  }
-
-  if (result.reason === "already_has_card") {
-    break;
-  }
-
-  if (result.reason === "invalid_state") {
-    break;
-  }
-}
-
-    availableCards.splice(idx, 1);
-    await sleep(1000);
-  }
-}
-
-    // 🔥 delay between games
-    console.log("⏳ Waiting before next game...");
-    await sleep(2000);
-
-    // After all demo users have picked their cards, monitor bingo until bingo is called or game ends.
-    if (Object.keys(userPickedCards).length > 0) {
-      console.log("🚀 Starting bingo monitoring for this round...");
-      await monitorBingo(roomId, userPickedCards, allCards);
-    } else {
-      console.log("ℹ️ No demo users picked cards this round; skipping bingo monitoring.");
-    }
-
-    // ✅ wait only if NOT the last game
-    if (game < games - 1) {
-      await waitForNextGame(roomId);
-    }
-  
-  }
-
-  return resultSummary;
-}
-async function callBingo(roomId, userId, cardId, pattern) {
-  const res = await fetch(`${API_BASE}/room/${roomId}/bingo`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "ngrok-skip-browser-warning": "true"
-    },
-    body: JSON.stringify({
-      user_id: userId,
-      card_id: cardId,
-      pattern: pattern
-    })
+// -------------------- Socket Setup --------------------
+function createSocket(roomId) {
+  const socket = io(API_BASE, {
+    transports: ["websocket"],
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1000,
   });
 
-  const data = await res.json();
-  return data.success;
+  let currentState = null;
+
+  socket.on("connect", () => {
+    console.log("✅ Connected:", socket.id);
+    socket.emit("join_room", { room_id: roomId });
+  });
+
+  socket.on("state_update", (state) => {
+    currentState = state;
+  });
+
+  socket.on("disconnect", (reason) => {
+    console.log("❌ Disconnected:", reason);
+  });
+
+  return { socket, getState: () => currentState };
 }
-async function monitorBingo(roomId, userPickedCards, allCards) {
-  console.log("👀 Monitoring bingo...");
 
-  let bingoCalled = false;
+// -------------------- Wait Helpers --------------------
+function waitForState(socket, targetStates) {
+  return new Promise((resolve) => {
+    const handler = (state) => {
+      if (targetStates.includes(state.state)) {
+        socket.off("state_update", handler);
+        resolve(state);
+      }
+    };
+    socket.on("state_update", handler);
+  });
+}
 
-  while (!bingoCalled) {
-    const res = await fetch(`${API_BASE}/room/${roomId}/state`, {
-      headers: { "ngrok-skip-browser-warning": "true" }
-    });
+// -------------------- Bingo Monitor --------------------
+async function monitorBingo(socket, roomId, userPickedCards) {
+  return new Promise((resolve) => {
+    const handler = async (data) => {
+      if (data.state === "ended") {
+        console.log("🛑 Game ended");
+        socket.off("state_update", handler);
+        resolve();
+        return;
+      }
 
-    if (!res.ok) {
-      await sleep(1000);
-      continue;
-    }
+      const drawnNumbers = data.drawn_numbers || [];
 
-    const data = await res.json();
-    const state = data.state;
-    if (state === "ended") {
-      console.log("🛑 Game ended before a demo bingo call succeeded.");
-      return false;
-    }
+      for (let userId in userPickedCards) {
+        for (let entry of userPickedCards[userId]) {
+          const { cardId, numbers } = entry;
 
-    const drawnNumbers = data.drawn_numbers || [];
+          let pattern = checkWinningPattern(numbers, drawnNumbers);
 
-    for (let userId in userPickedCards) {
-      for (let entry of userPickedCards[userId]) {
-        const { cardId, numbers } = entry;
+          if (pattern) {
+            const matched = getDrawnNumbersFromCard(numbers, drawnNumbers);
+            pattern = [...new Set([...pattern, ...matched])];
 
-        let pattern = checkWinningPattern(numbers, drawnNumbers);
+            console.log(`🏆 BINGO FOUND! User ${userId}`);
 
-        if (pattern) {
-          const matchedNumbers = getDrawnNumbersFromCard(numbers, drawnNumbers);
-          pattern = [...new Set([...pattern, ...matchedNumbers])];
-          console.log(`🏆 BINGO FOUND! User ${userId}`);
-
-          const success = await callBingo(roomId, userId, cardId, pattern);
-
-          if (success) {
-            console.log("🎉 BINGO CALLED SUCCESSFULLY");
-            bingoCalled = true;
-            return;
+            socket.emit("bingo", {
+              room_id: roomId,
+              user_id: userId,
+              card_id: cardId,
+              pattern,
+            });
           }
         }
       }
+    };
+
+    socket.on("state_update", handler);
+  });
+}
+
+// -------------------- Main Game Logic --------------------
+async function playGames(roomId, quantity, games) {
+  const { socket, getState } = createSocket(roomId);
+
+  const demoUsers = Array.from({ length: 30 }, (_, i) => String(i + 1));
+
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+
+  const allCards = JSON.parse(
+    fs.readFileSync(path.join(__dirname, "cards.json"), "utf-8")
+  );
+
+  const allCardIds = Object.keys(allCards);
+  let resultSummary = {};
+
+  // wait first state
+  await waitForState(socket, ["waiting", "countdown"]);
+
+  for (let game = 0; game < games; game++) {
+    console.log(`🎮 Game ${game + 1}/${games}`);
+
+    let userPickedCards = {};
+    let successfulPicks = 0;
+
+    const shuffledUsers = [...demoUsers].sort(() => Math.random() - 0.5);
+
+    for (let userId of shuffledUsers) {
+      if (successfulPicks >= quantity) break;
+
+      const state = getState();
+      if (!state || !["waiting", "countdown"].includes(state.state)) {
+        console.log("⚠️ Game started early");
+        break;
+      }
+
+      const takenCards = new Set((state.cards || []).map((c) => c[0]));
+      const availableCards = allCardIds.filter((c) => !takenCards.has(c));
+
+      if (availableCards.length === 0) break;
+
+      const cardId =
+        availableCards[Math.floor(Math.random() * availableCards.length)];
+
+      socket.emit("pick", {
+        room_id: roomId,
+        user_id: userId,
+        card_id: cardId,
+        bet_amount: state.bet_amount || 0,
+      });
+
+      if (!userPickedCards[userId]) userPickedCards[userId] = [];
+      userPickedCards[userId].push({
+        cardId,
+        numbers: allCards[cardId],
+      });
+
+      if (!resultSummary[userId]) resultSummary[userId] = [];
+      resultSummary[userId].push(cardId);
+
+      successfulPicks++;
+      await sleep(200);
     }
 
-    await sleep(1000);
+    console.log("🚀 Monitoring bingo...");
+    await monitorBingo(socket, roomId, userPickedCards);
+
+    if (game < games - 1) {
+      console.log("⏳ Waiting next game...");
+      await waitForState(socket, ["waiting"]);
+    }
   }
+
+  socket.disconnect();
+  return resultSummary;
 }
-// ---------------- POST /play ----------------
+
+// -------------------- API --------------------
 app.post("/play", async (req, res) => {
   const { roomId, quantity, games, callbackUrl } = req.body;
 
-  // ✅ respond immediately
   res.json({ success: true, message: "Job started" });
 
-  // ✅ run in background
   (async () => {
     try {
       const result = await playGames(roomId, quantity, games);
 
-      // ✅ notify bot when done
       if (callbackUrl) {
         await fetch(callbackUrl, {
           method: "POST",
@@ -341,11 +234,10 @@ app.post("/play", async (req, res) => {
           body: JSON.stringify({
             success: true,
             gamesPlayed: games,
-            pickedCards: result
-          })
+            pickedCards: result,
+          }),
         });
       }
-
     } catch (err) {
       if (callbackUrl) {
         await fetch(callbackUrl, {
@@ -353,8 +245,8 @@ app.post("/play", async (req, res) => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             success: false,
-            error: err.message
-          })
+            error: err.message,
+          }),
         });
       }
     }

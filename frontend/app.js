@@ -568,30 +568,60 @@ function showLoserPopup(winnerCards) {
       border-radius:12px; 
       text-align:center;
       box-shadow:0 4px 15px rgba(0,0,0,0.4);
+      max-height:80vh;
+      overflow-y:auto;
     ">
-     <h2>${t("game_over")}</h2>
-    <p>${t("winner_cards")}:</p>
+      <h2>${t("game_over")}</h2>
+      <p>${t("winner_cards")}</p>
+
+      <div style="
+        display:flex;
+        flex-wrap:wrap;
+        justify-content:center;
+        gap:20px;
+        margin-top:15px;
+      ">
   `;
 
   winnerCards.forEach((w, index) => {
     html += `
-      <div style="margin-bottom:10px">
-        <strong>${w.username || w.user_id}</strong> 
-        (Card #${w.card_id.replace("card","")})
+      <div style="
+        background:white;
+        color:black;
+        padding:10px;
+        border-radius:10px;
+        min-width:160px;
+      ">
+        <div style="margin-bottom:5px;font-weight:bold">
+          ${w.username || w.user_id}
+        </div>
+        <div style="font-size:12px;margin-bottom:5px">
+          Card #${w.card_id.replace("card","")}
+        </div>
+
+        <div id="loserCard_${index}"></div>
       </div>
-      <div id="loserCard_${index}" style="margin:10px auto"></div>
     `;
   });
 
-  html += `</div>`;
+  html += `</div></div>`;
+
   popup.innerHTML = html;
   popup.style.display = "block";
 
-  winnerCards.forEach((w, index) => {
-    renderHighlightedCard(w.card_id, w.pattern, `loserCard_${index}`, false);
-  });
+  // render cards AFTER DOM is ready
+  setTimeout(() => {
+    winnerCards.forEach((w, index) => {
+      renderHighlightedCard(w.card_id, w.pattern, `loserCard_${index}`, false);
+    });
+  }, 50);
 
-  setTimeout(() => { popup.style.display = "none"; }, 4000);
+  // ⏳ give more time if many winners
+  const duration = Math.max(4000, winnerCards.length * 2000);
+
+  setTimeout(() => {
+    popup.style.display = "none";
+  }, duration);
 }
 async function renderHighlightedCard(cardId, pattern, containerId, isWinner=false) {
   const container = document.getElementById(containerId);
