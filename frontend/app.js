@@ -274,10 +274,7 @@ function renderGameArena(state){
         <div id="calledBoard"></div>
         <div id="playerCard"></div>
       </div>
-      <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
-    <button onclick="toggleAutoBet()">${t("auto_bet")}</button>
-    <button onclick="toggleAutoBingo()">${t("auto_bingo")}</button>
-  </div>
+     
 
       
     `;
@@ -452,7 +449,11 @@ function renderPlayerCard(){
           ">
           ${t("bingo")}
         </button>
-      </div></div>`;
+      </div>
+       <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
+    <button onclick="toggleAutoBet()">${t("auto_bet")}</button>
+    <button onclick="toggleAutoBingo()">${t("auto_bingo")}</button>
+  </div></div>`;
 
   container.innerHTML = html;
 }
