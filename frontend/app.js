@@ -39,7 +39,9 @@ const LANG = {
     you_won: "አሸንፈዋል!",
     congratulations: "እንኳን ደስ አለህ! ካርድ #",
     game_over: "ጨዋታው ተጠናቋል",
-    winner_cards: "አሸናፊ ካርዶች"
+    winner_cards: "አሸናፊ ካርዶች",
+    auto_bet: "አውቶ ቤት",
+  auto_bingo: "አውቶ ቢንጎ",
   },
   en: {
     select_card: "Select Your Card",
@@ -63,7 +65,10 @@ const LANG = {
     you_won: "YOU WON!",
     congratulations: "Congratulations! You won with card #",
     game_over: "Game Over!",
-    winner_cards: "Winner card(s):"
+    winner_cards: "Winner card(s):",
+     auto_bet: "Auto Bet",
+  auto_bingo: "Auto Bingo",
+
   },
   or: {
     select_card: "Kaardii Filadhu",
@@ -87,7 +92,9 @@ const LANG = {
     you_won: "Ati mo'atte!",
     congratulations: "Baga gammaddan! Kaardii #",
     game_over: "Tapha xumurameera",
-    winner_cards: "Kaardii mo'ataa"
+    winner_cards: "Kaardii mo'ataa",
+  auto_bet: "Ofumaan Sharata",
+  auto_bingo: "Ofumaan BINGO",
   }
 };
 let currentLang = "am"; // default
@@ -267,6 +274,10 @@ function renderGameArena(state){
         <div id="calledBoard"></div>
         <div id="playerCard"></div>
       </div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
+    <button onclick="toggleAutoBet()">${t("auto_bet")}</button>
+    <button onclick="toggleAutoBingo()">${t("auto_bingo")}</button>
+  </div>
 
       
     `;
@@ -278,6 +289,114 @@ function renderGameArena(state){
 
     arenaInitialized = true;
   }
+}
+function toggleAutoBet(){
+  if(!myPickedCard){
+    showPopup("Select a card first");
+    return;
+  }
+
+  autoBetEnabled = !autoBetEnabled;
+
+  if(autoBetEnabled){
+    autoBetGamesLeft = 5;
+    showPopup("Auto Bet ON (5 games)");
+  } else {
+    autoBetGamesLeft = 0;
+    showPopup("Auto Bet OFF");
+  }
+}
+function toggleAutoBingo(){
+  if(!myPickedCard){
+    showPopup("Select a card first");
+    return;
+  }
+
+  autoBingoEnabled = !autoBingoEnabled;
+
+  if(autoBingoEnabled){
+    startAutoBingoWatcher();
+    showPopup("Auto Bingo ON");
+  } else {
+    stopAutoBingoWatcher();
+    showPopup("Auto Bingo OFF");
+  }
+}
+function startAutoBingoWatcher(){
+
+  if(autoBingoInterval) clearInterval(autoBingoInterval);
+
+  autoBingoInterval = setInterval(() => {
+
+    if(!autoBingoEnabled || !myPickedCard || !currentState) return;
+    if(currentState.state !== "playing") return;
+
+    const numbers = allCards[myPickedCard];
+    if(!numbers) return;
+
+    const marked = new Set(calledNumbers);
+
+    const hasWin = checkWin(numbers, marked);
+
+    if(hasWin && !hasCalledBingo){
+
+      socket.emit("bingo", {
+        room_id: ROOM_ID,
+        user_id: USER_ID,
+        card_id: myPickedCard,
+        pattern: [...markedCells]
+      });
+
+      hasCalledBingo = true;
+      showPopup("Auto Bingo Called!");
+    }
+
+  }, 800);
+}
+
+function stopAutoBingoWatcher(){
+  if(autoBingoInterval){
+    clearInterval(autoBingoInterval);
+    autoBingoInterval = null;
+  }
+}
+function checkWin(card, drawnNumbers) {
+  const marked = new Set(drawnNumbers);
+
+  const rows = [
+    [card[0], card[1], card[2], card[3], card[4]],
+    [card[5], card[6], card[7], card[8], card[9]],
+    [card[10], card[11], card[12], card[13], card[14]],
+    [card[15], card[16], card[17], card[18], card[19]],
+    [card[20], card[21], card[22], card[23], card[24]],
+  ];
+
+  for (let row of rows) {
+    if (row.every(n => marked.has(n))) return row;
+  }
+
+  const cols = [
+    [card[0], card[5], card[10], card[15], card[20]],
+    [card[1], card[6], card[11], card[16], card[21]],
+    [card[2], card[7], card[12], card[17], card[22]],
+    [card[3], card[8], card[13], card[18], card[23]],
+    [card[4], card[9], card[14], card[19], card[24]],
+  ];
+
+  for (let col of cols) {
+    if (col.every(n => marked.has(n))) return col;
+  }
+
+  const diag1 = [card[0], card[6], card[12], card[18], card[24]];
+  const diag2 = [card[4], card[8], card[12], card[16], card[20]];
+
+  if (diag1.every(n => marked.has(n))) return diag1;
+  if (diag2.every(n => marked.has(n))) return diag2;
+
+  const corners = [card[0], card[4], card[20], card[24]];
+  if (corners.every(n => marked.has(n))) return corners;
+
+  return null;
 }
 function renderPlayerCard(){
 
@@ -806,6 +925,25 @@ function handleStateUpdate(state) {
   // 🔥 cards UI sync
   updateCardSelection(normalized);
   renderSelectedCardPreview();
+   if (autoBetEnabled && myPickedCard && autoBetGamesLeft > 0) {
+
+    setTimeout(() => {
+      socket.emit("pick", {
+        room_id: ROOM_ID,
+        user_id: USER_ID,
+        card_id: myPickedCard,
+        bet_amount: ROOM_BET_AMOUNT
+      });
+
+      autoBetGamesLeft--;
+
+      if (autoBetGamesLeft <= 0) {
+        autoBetEnabled = false;
+        showPopup("Auto Bet finished");
+      }
+
+    }, 1000);
+  }
 
   arenaInitialized = false;
   lastRoomState = roomState;
