@@ -293,8 +293,8 @@ function renderGameArena(state){
   }
 }
 function toggleAutoBet(){
-  if(!myPickedCard){
-    showPopup("Select a card first");
+  if(!selectedCard){
+    showPopup(t("select_card_first"));
     return;
   }
 
@@ -302,11 +302,13 @@ function toggleAutoBet(){
 
   if(autoBetEnabled){
     autoBetGamesLeft = 5;
-    showPopup("Auto Bet ON (5 games)");
+    showPopup(t("auto_bet_on"));
   } else {
     autoBetGamesLeft = 0;
-    showPopup("Auto Bet OFF");
+    showPopup(t("auto_bet_off"));
   }
+
+  updateAutoButtons(); // 👈 add this
 }
 function toggleAutoBingo(){
   if(!myPickedCard){
@@ -330,13 +332,13 @@ function startAutoBingoWatcher(){
 
   autoBingoInterval = setInterval(() => {
 
-    if(!autoBingoEnabled || !myPickedCard || !currentState) return;
+    if(!autoBingoEnabled || !selectedCard  || !currentState) return;
     if(currentState.state !== "playing") return;
 
-    const numbers = allCards[myPickedCard];
+    const numbers = allCards[selectedCard];
     if(!numbers) return;
 
-    const marked = new Set(calledNumbers);
+    const marked = new Set(markedCells);
 
     const hasWin = checkWin(numbers, marked);
 
@@ -345,7 +347,7 @@ function startAutoBingoWatcher(){
       socket.emit("bingo", {
         room_id: ROOM_ID,
         user_id: USER_ID,
-        card_id: myPickedCard,
+        card_id: selectedCard,
         pattern: [...markedCells]
       });
 
