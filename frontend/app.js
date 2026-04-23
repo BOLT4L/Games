@@ -15,6 +15,11 @@ let currentState = null;
 let resultShown = false;
 let ROOM_BET_AMOUNT = 0;
 let lastCards = {};
+let autoBetEnabled = false;
+let autoBetGamesLeft = 0;
+
+let autoBingoEnabled = false;
+let autoBingoInterval = null;
 const CARDS_PER_PAGE = 100;
 const LANG = {
   am: {
@@ -447,7 +452,7 @@ function renderPlayerCard(){
             cursor:pointer;
             box-shadow:0 4px 10px rgba(0,0,0,0.3);
           ">
-          ${t("bingo")}
+          ${t("bingo")} 
         </button>
       </div>
        <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
