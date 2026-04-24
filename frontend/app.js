@@ -1218,11 +1218,12 @@ function updateCountdown(state){
   const el = document.getElementById("countdownValue");
   if(el) el.innerText = state.countdown;
 }
-function updateCalledNumbers(state){
-  if(JSON.stringify(calledNumbers) === JSON.stringify(state.drawn_numbers)) return;
 
-  calledNumbers = state.drawn_numbers;
-  const lastNumber = calledNumbers[newNumbers.length - 1];
+function updateCalledNumbers(state) {
+  const newNumbers = state.drawn_numbers;
+
+  // detect NEW number only
+  const lastNumber = newNumbers[newNumbers.length - 1];
 
   if (lastNumber && lastNumber !== calledNumbers[calledNumbers.length - 1]) {
 
@@ -1230,10 +1231,10 @@ function updateCalledNumbers(state){
     const letter = getBingoLetter(lastNumber);
     speakNumber(letter, lastNumber, getSpeechLang());
   }
-  // 🔥 ONLY update called board (no full arena render)
-  if(currentState.state === "playing"){
-    updateCalledBoard();
-  }
+
+  calledNumbers = newNumbers;
+
+  updateCalledBoard();
 }
 function cardsChanged(newCards, oldCards) {
   if (!oldCards) return true;
