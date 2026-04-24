@@ -387,6 +387,8 @@ function toggleAutoBingo(){
 }
 function startAutoBingoWatcher(){
  console.log("Starting Auto Bingo Watcher");
+
+  if(autoBingoInterval) return;
   if(autoBingoInterval) clearInterval(autoBingoInterval);
 
   autoBingoInterval = setInterval(() => {
@@ -438,6 +440,7 @@ function startAutoBingoWatcher(){
 }
 
 function stopAutoBingoWatcher(){
+  console.log("Stopping Auto Bingo Watcher");
   if(autoBingoInterval){
     clearInterval(autoBingoInterval);
     autoBingoInterval = null;
@@ -1021,6 +1024,7 @@ function handleStateUpdate(state) {
 
   // 🔥 reset player state if previous state was ended
   if(lastRoomState === "ended") {
+
     resetPlayerState();
   }
 
