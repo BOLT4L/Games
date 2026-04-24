@@ -386,7 +386,7 @@ function toggleAutoBingo(){
   renderPlayerCard();
 }
 function startAutoBingoWatcher(){
-
+ console.log("Starting Auto Bingo Watcher");
   if(autoBingoInterval) clearInterval(autoBingoInterval);
 
   autoBingoInterval = setInterval(() => {
@@ -394,7 +394,7 @@ function startAutoBingoWatcher(){
     if(!autoBingoEnabled || !selectedCard || !currentState) return;
     if(currentState.state !== "playing") return;
 
-   const numbers = allCards[myPickedCard];
+    const numbers = allCards[selectedCard];
     if(!numbers) return;
 
     // ✅ ensure center is always marked
@@ -425,7 +425,7 @@ function startAutoBingoWatcher(){
       socket.emit("bingo", {
         room_id: ROOM_ID,
         user_id: USER_ID,
-        card_id: myPickedCard,
+        card_id: selectedCard,
         pattern: [...markedCells]
       });
 
