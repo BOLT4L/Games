@@ -143,6 +143,11 @@ function normalizeState(state) {
 function t(key) {
   return LANG[currentLang][key] || key;
 }
+function getSpeechLang() {
+  if (currentLang === "am") return "am-ET";
+  if (currentLang === "or") return "om-ET";
+  return "en-US";
+}
 function setLang(lang) {
   currentLang = lang;
   handleStateUpdate(currentState)
@@ -153,7 +158,21 @@ async function loadCards(){
   allCards = await res.json();
   cardIds = Object.keys(allCards);
 }
+function speakNumber(letter, number, lang = "en-US") {
+  const text = `${letter} ${number}`;
+  const utterance = new SpeechSynthesisUtterance(text);
 
+  utterance.lang = lang;
+
+  // Optional: better voice selection
+  const voices = speechSynthesis.getVoices();
+  const selectedVoice = voices.find(v => v.lang === lang);
+  if (selectedVoice) {
+    utterance.voice = selectedVoice;
+  }
+
+  speechSynthesis.speak(utterance);
+}
 
 let selectedCards = new Set();
 
@@ -786,7 +805,13 @@ function attachArenaEvents() {
   }
 }
 // ------------------ POPUP ------------------
-
+function getBingoLetter(num) {
+  if (num <= 15) return "B";
+  if (num <= 30) return "I";
+  if (num <= 45) return "N";
+  if (num <= 60) return "G";
+  return "O";
+}
 function showPopup(msg) {
   const popup = document.getElementById("popup");
   popup.innerText = msg;
@@ -1197,7 +1222,14 @@ function updateCalledNumbers(state){
   if(JSON.stringify(calledNumbers) === JSON.stringify(state.drawn_numbers)) return;
 
   calledNumbers = state.drawn_numbers;
+  const lastNumber = calledNumbers[newNumbers.length - 1];
 
+  if (lastNumber && lastNumber !== calledNumbers[calledNumbers.length - 1]) {
+
+    // 🔊 CALL SOUND HERE
+    const letter = getBingoLetter(lastNumber);
+    speakNumber(letter, lastNumber, getSpeechLang());
+  }
   // 🔥 ONLY update called board (no full arena render)
   if(currentState.state === "playing"){
     updateCalledBoard();
