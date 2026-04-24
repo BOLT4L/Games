@@ -17,7 +17,7 @@ let ROOM_BET_AMOUNT = 0;
 let lastCards = {};
 let autoBetEnabled = false;
 let autoBetGamesLeft = 0;
-
+let lastProcessedNumber = null;
 let autoBingoEnabled = false;
 let autoBingoInterval = null;
 const CARDS_PER_PAGE = 100;
@@ -351,18 +351,30 @@ function startAutoBingoWatcher(){
 
   autoBingoInterval = setInterval(() => {
 
-    if(!autoBingoEnabled || !selectedCard  || !currentState){
-      console.log("Auto Bingo: Missing conditions, skipping check");
-      return;
-    } 
+    if(!autoBingoEnabled || !selectedCard || !currentState) return;
     if(currentState.state !== "playing") return;
 
     const numbers = allCards[selectedCard];
     if(!numbers) return;
 
-    const marked = new Set(markedCells);
+    const drawn = currentState.drawn_numbers;
+    const latestNumber = drawn[drawn.length - 1];
 
-    const hasWin = checkWin(numbers, marked);
+    // ✅ ONLY process NEW number
+    if(!latestNumber || latestNumber === lastProcessedNumber) return;
+
+    lastProcessedNumber = latestNumber;
+
+    console.log("🎯 New number:", latestNumber);
+
+    // ✅ If number exists in my card → mark it
+    if(numbers.includes(latestNumber)){
+      toggleMark(latestNumber);
+      console.log("✅ Auto marked:", latestNumber);
+    }
+
+    // ✅ Now check win AFTER marking
+    const hasWin = checkWin(numbers, markedCells);
 
     if(hasWin && !hasCalledBingo){
 
@@ -377,7 +389,8 @@ function startAutoBingoWatcher(){
       showPopup("Auto Bingo Called!");
     }
 
-  }, 800);
+  }, 500); // faster reaction
+
 }
 
 function stopAutoBingoWatcher(){
