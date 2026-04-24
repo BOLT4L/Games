@@ -166,7 +166,7 @@ function speakNumber(letter, number, lang = "en-US") {
 
   // Optional: better voice selection
   const voices = speechSynthesis.getVoices();
-  const selectedVoice = voices.find(v => v.lang === lang);
+  const selectedVoice = voices.find(v => v.lang === "am-ET");
   if (selectedVoice) {
     utterance.voice = selectedVoice;
   }
