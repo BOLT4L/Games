@@ -162,18 +162,33 @@ function speakNumber(letter, number, lang = "en-US") {
   const text = `${letter} ${number}`;
   const utterance = new SpeechSynthesisUtterance(text);
 
-  utterance.lang = lang;
-
-  // Optional: better voice selection
   const voices = speechSynthesis.getVoices();
-  const selectedVoice = voices.find(v => v.lang === "am-ET");
-  if (selectedVoice) {
-    utterance.voice = selectedVoice;
+
+  // ✅ Try exact language
+  let voice = voices.find(v => v.lang === lang);
+
+  // ✅ Fallback to English if not found
+  if (!voice) {
+    voice = voices.find(v => v.lang.startsWith("en"));
+  }
+
+  if (voice) {
+    utterance.voice = voice;
   }
 
   speechSynthesis.speak(utterance);
 }
+function convertToAmharicLetter(letter) {
+  const map = {
+    B: "ቢ",
+    I: "አይ",
+    N: "ኤን",
+    G: "ጂ",
+    O: "ኦ"
+  };
 
+  return map[letter] || letter;
+}
 let selectedCards = new Set();
 
 
@@ -1228,8 +1243,13 @@ function updateCalledNumbers(state) {
   if (lastNumber && lastNumber !== calledNumbers[calledNumbers.length - 1]) {
 
     // 🔊 CALL SOUND HERE
-    const letter = getBingoLetter(lastNumber);
-    speakNumber(letter, lastNumber, getSpeechLang());
+   const letter = getBingoLetter(lastNumber);
+
+if (currentLang === "am") {
+  speakNumber(convertToAmharicLetter(letter), lastNumber, "en-US");
+} else {
+  speakNumber(letter, lastNumber, getSpeechLang());
+}
   }
 
   calledNumbers = newNumbers;
