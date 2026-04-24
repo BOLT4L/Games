@@ -257,22 +257,39 @@ function renderSelectedCardPreview(){
     /* ✅ BUTTONS BACK */
   html += `<div style="margin-top:15px;text-align:center">`;
 
-  if (myPickedCard) {
-    html += `
-      <button id ="cancelBetBtn"
-        style="padding:10px 20px;background:red;color:white;border:none;border-radius:6px">
+ if (myPickedCard) {
+  html += `
+    <div style="
+      display:flex;
+      justify-content:center;
+      gap:10px;
+      margin-top:10px;
+    ">
+      <button id="cancelBetBtn"
+        style="
+          padding:10px 20px;
+          background:red;
+          color:white;
+          border:none;
+          border-radius:6px;
+        ">
         ${t("cancel_bet")}
       </button>
-      <button 
-    class="auto-btn ${autoBetEnabled ? "on" : "off"}"
-    style="padding:10px 20px;"
-    onclick="toggleAutoBet()"
-  >
-    ${autoBetEnabled ? "🟢" : "⚪"} 
-    ${autoBetEnabled ? t("auto_bet_on") : t("auto_bet_off")}
-  </button>
-    `;
-  } else {
+
+      <button id="autoBetBtn"
+        class="auto-btn ${autoBetEnabled ? "on" : "off"}"
+        onclick="toggleAutoBetforpreview()"
+        style="
+          padding:10px 20px;
+          border:none;
+          border-radius:6px;
+        ">
+        ${autoBetEnabled ? "🟢" : "⚪"} 
+        ${autoBetEnabled ? t("auto_bet_on") : t("auto_bet_off")}
+      </button>
+    </div>
+  `;
+} else {
     html += `
     <button id="placeBetBtn"style="padding:10px 20px;background:green;color:white;border:none;border-radius:6px">
         ${t("place_bet")}
@@ -374,6 +391,29 @@ function toggleAutoBet(){
   }
   saveAutoState();
   renderPlayerCard(); // ✅ re-render button text
+}
+function toggleAutoBetforpreview(){
+  if(!selectedCard){
+    showPopup(t("select_card_first"));
+    return;
+  }
+
+  autoBetEnabled = !autoBetEnabled;
+
+ if(autoBetEnabled){
+    autoBetGamesLeft = 5;
+
+    // ✅ store current selected card
+    autoBetCardId = selectedCard;
+
+    showPopup("Auto Bet ON");
+  } else {
+    autoBetGamesLeft = 0;
+    autoBetCardId = null; // reset
+    showPopup("Auto Bet OFF");
+  }
+  saveAutoState();
+  renderSelectedCardPreview(); // ✅ re-render button text
 }
 function toggleAutoBingo(){
   if(!myPickedCard){
@@ -724,7 +764,6 @@ function clearPreview(){
 function attachPreviewEvents() {
   const placeBtn = document.getElementById("placeBetBtn");
   const cancelBtn = document.getElementById("cancelBetBtn");
-
   if (placeBtn) {
     placeBtn.addEventListener("click", () => {
       placeBet(selectedCard);
@@ -736,6 +775,7 @@ function attachPreviewEvents() {
       cancelBet(myPickedCard);
     });
   }
+   
 }
 function attachArenaEvents() {
   const bingoBtn = document.getElementById("callBingoBtn");
