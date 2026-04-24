@@ -311,6 +311,33 @@ function renderGameArena(state){
     arenaInitialized = true;
   }
 }
+function saveAutoState() {
+  const data = {
+    autoBetEnabled,
+    autoBetCardId,
+    autoBetGamesLeft,
+    autoBingoEnabled
+  };
+
+  localStorage.setItem("bingo_auto_state", JSON.stringify(data));
+}
+
+function loadAutoState() {
+  const data = localStorage.getItem("bingo_auto_state");
+  if (!data) return;
+
+  try {
+    const parsed = JSON.parse(data);
+
+    autoBetEnabled = parsed.autoBetEnabled || false;
+    autoBetCardId = parsed.autoBetCardId || null;
+    autoBetGamesLeft = parsed.autoBetGamesLeft || 0;
+    autoBingoEnabled = parsed.autoBingoEnabled || false;
+
+  } catch (e) {
+    console.error("Failed to load auto state", e);
+  }
+}
 function toggleAutoBet(){
   if(!selectedCard){
     showPopup(t("select_card_first"));
@@ -331,7 +358,7 @@ function toggleAutoBet(){
     autoBetCardId = null; // reset
     showPopup("Auto Bet OFF");
   }
-
+  saveAutoState();
   renderPlayerCard(); // ✅ re-render button text
 }
 function toggleAutoBingo(){
@@ -349,6 +376,7 @@ function toggleAutoBingo(){
     stopAutoBingoWatcher();
     showPopup("Auto Bingo OFF");
   }
+  saveAutoState();
   renderPlayerCard();
 }
 function startAutoBingoWatcher(){
@@ -1027,6 +1055,9 @@ function handleStateUpdate(state) {
   clearPreview();
 
  if (roomState === "playing") {
+   if(autoBingoEnabled){
+    startAutoBingoWatcher(); // ✅ restore after reload
+  }
 
   // 🔥 First time entering playing → build arena ONCE
   if (!arenaInitialized) {
@@ -1194,7 +1225,8 @@ function initSocket() {
 
 }
 async function startApp() {
-  await loadCards();   // 🔥 REQUIRED
+  await loadCards();
+  loadAutoState();   // 🔥 REQUIRED
   initSocket();        // start socket AFTER cards loaded
 }
 
