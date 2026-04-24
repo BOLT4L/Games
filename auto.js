@@ -303,52 +303,63 @@ async function callBingo(roomId, userId, cardId, pattern) {
   return data.success;
 }
 async function monitorBingo(roomId, userPickedCards, allCards) {
-  console.log("👀 Monitoring bingo...");
+  console.log("👀 Monitoring bingo (SOCKET MODE)...");
 
   let bingoCalled = false;
+  let lastProcessedLength = 0;
 
   while (!bingoCalled) {
-    const res = await fetch(`${API_BASE}/room/${roomId}/state`,);
-    
-    if (!res.ok) {
-      await sleep(1000);
+
+    if (!roomState) {
+      await sleep(200);
       continue;
     }
 
-    const data = await res.json();
-    const state = data.state;
-    console.log("Current room state:", state);
+    const state = roomState.state;
+
     if (state === "ended") {
-      console.log("🛑 Game ended before a demo bingo call succeeded.");
+      console.log("🛑 Game ended before bingo");
       return false;
     }
 
-    const drawnNumbers = data.drawn_numbers || [];
+    if (state !== "playing") {
+      await sleep(200);
+      continue;
+    }
+
+    const drawnNumbers = roomState.drawn_numbers || [];
+
+    // ✅ ONLY react when new number arrives
+    if (drawnNumbers.length === lastProcessedLength) {
+      await sleep(100);
+      continue;
+    }
+
+    lastProcessedLength = drawnNumbers.length;
+
+    console.log("🎯 New number:", drawnNumbers.at(-1));
 
     for (let userId in userPickedCards) {
       for (let entry of userPickedCards[userId]) {
         const { cardId, numbers } = entry;
-        
+
         let pattern = checkWinningPattern(numbers, drawnNumbers);
-        console.log("Drawn:", drawnNumbers);
-        console.log("Card:", numbers);
+
         if (pattern) {
           const matchedNumbers = getDrawnNumbersFromCard(numbers, drawnNumbers);
           pattern = [...new Set([...pattern, ...matchedNumbers])];
+
           console.log(`🏆 BINGO FOUND! User ${userId}`);
 
           const success = await callBingo(roomId, userId, cardId, pattern);
 
           if (success) {
             console.log("🎉 BINGO CALLED SUCCESSFULLY");
-            bingoCalled = true;
             return;
           }
         }
       }
     }
-
-    await sleep(1000);
   }
 }
 // ---------------- POST /play ----------------
