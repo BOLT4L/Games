@@ -338,6 +338,12 @@ function loadAutoState() {
     console.error("Failed to load auto state", e);
   }
 }
+async function hasEnoughBalance() {
+  const userData = await fetchUser();
+  if (!userData) return false;
+
+  return userData.balance >= ROOM_BET_AMOUNT;
+}
 function toggleAutoBet(){
   if(!selectedCard){
     showPopup(t("select_card_first"));
@@ -1025,23 +1031,40 @@ function handleStateUpdate(state) {
 
   if (autoBetEnabled && !alreadyPicked && autoBetCardId && autoBetGamesLeft > 0) {
 
-  setTimeout(() => {
-    socket.emit("pick", {
-      room_id: ROOM_ID,
-      user_id: USER_ID,
-      card_id: autoBetCardId, // ✅ use stored card
-      bet_amount: ROOM_BET_AMOUNT
-    });
+ setTimeout(async () => {
 
-    autoBetGamesLeft--;
+  const ok = await hasEnoughBalance();
 
-    if (autoBetGamesLeft <= 0) {
-      autoBetEnabled = false;
-      autoBetCardId = null;
-      showPopup("Auto Bet finished");
-    }
+  if (!ok) {
+    autoBetEnabled = false;
+    autoBetCardId = null;
+    autoBetGamesLeft = 0;
 
-  }, 1000);
+    saveAutoState(); // persist OFF
+
+    showPopup("Auto Bet stopped: insufficient balance");
+    renderPlayerCard();
+    return;
+  }
+
+  socket.emit("pick", {
+    room_id: ROOM_ID,
+    user_id: USER_ID,
+    card_id: autoBetCardId,
+    bet_amount: ROOM_BET_AMOUNT
+  });
+
+  autoBetGamesLeft--;
+
+  if (autoBetGamesLeft <= 0) {
+    autoBetEnabled = false;
+    autoBetCardId = null;
+
+    saveAutoState();
+    showPopup("Auto Bet finished");
+  }
+
+}, 1000);
 }
 
   arenaInitialized = false;
