@@ -183,26 +183,37 @@ function numberToAmharic(num) {
 
   return num.toString(); // fallback
 }
-function speakNumber(letter, number, lang = "en-US") {
+function speakNumber(letter, number) {
 
   let text;
 
-  // 👉 If Amharic selected → convert number
   if (currentLang === "am") {
     const amNumber = numberToAmharic(number);
+
+    // ⚠️ Force safe pronunciation
     text = `${letter} ${amNumber}`;
+
   } else {
     text = `${letter} ${number}`;
   }
 
-  const utterance = new SpeechSynthesisUtterance(text);
+  const utterance = new SpeechSynthesisUtterance();
 
-  // ⚠️ ALWAYS use English voice (important)
+  // 🔥 CRITICAL FIX
+  utterance.text = text;
   utterance.lang = "en-US";
+
+  // 🔥 FORCE a working voice
+  const voices = speechSynthesis.getVoices();
+  const voice = voices.find(v => v.lang.startsWith("en"));
+
+  if (voice) utterance.voice = voice;
+
+  // 🔥 Cancel any stuck speech
+  speechSynthesis.cancel();
 
   speechSynthesis.speak(utterance);
 }
-
 let selectedCards = new Set();
 
 
