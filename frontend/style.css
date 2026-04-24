@@ -276,8 +276,10 @@
 /* AUTO BUTTONS CONTAINER */
 .auto-controls {
   display: flex;
+  flex-direction: column;   /* 👈 THIS makes it vertical */
   gap: 10px;
   justify-content: center;
+  align-items: center;      /* centers buttons nicely */
   margin-top: 10px;
 }
 
