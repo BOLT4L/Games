@@ -356,7 +356,10 @@ function startAutoBingoWatcher(){
 
     const numbers = allCards[selectedCard];
     if(!numbers) return;
-
+    if (numbers.includes(0) && !markedCells.has(0)) {
+      markedCells.add(0);
+      updateSingleCell(0);
+    }
     const drawn = currentState.drawn_numbers;
     const latestNumber = drawn[drawn.length - 1];
 
