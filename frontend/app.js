@@ -158,37 +158,51 @@ async function loadCards(){
   allCards = await res.json();
   cardIds = Object.keys(allCards);
 }
+function numberToAmharic(num) {
+  const ones = [
+    "", "አንድ", "ሁለት", "ሶስት", "አራት",
+    "አምስት", "ስድስት", "ሰባት", "ስምንት", "ዘጠኝ"
+  ];
+
+  const tens = [
+    "", "አስር", "ሃያ", "ሰላሳ", "አርባ",
+    "ሃምሳ", "ስድሳ", "ሰባ", "ሰማንያ", "ዘጠና"
+  ];
+
+  if (num === 0) return "ዜሮ";
+  if (num < 10) return ones[num];
+  if (num === 10) return "አስር";
+
+  if (num < 100) {
+    const t = Math.floor(num / 10);
+    const o = num % 10;
+
+    if (o === 0) return tens[t];
+    return `${tens[t]} ${ones[o]}`;
+  }
+
+  return num.toString(); // fallback
+}
 function speakNumber(letter, number, lang = "en-US") {
-  const text = `${letter} ${number}`;
+
+  let text;
+
+  // 👉 If Amharic selected → convert number
+  if (currentLang === "am") {
+    const amNumber = numberToAmharic(number);
+    text = `${letter} ${amNumber}`;
+  } else {
+    text = `${letter} ${number}`;
+  }
+
   const utterance = new SpeechSynthesisUtterance(text);
 
-  const voices = speechSynthesis.getVoices();
-
-  // ✅ Try exact language
-  let voice = voices.find(v => v.lang === lang);
-
-  // ✅ Fallback to English if not found
-  if (!voice) {
-    voice = voices.find(v => v.lang.startsWith("en"));
-  }
-
-  if (voice) {
-    utterance.voice = voice;
-  }
+  // ⚠️ ALWAYS use English voice (important)
+  utterance.lang = "en-US";
 
   speechSynthesis.speak(utterance);
 }
-function convertToAmharicLetter(letter) {
-  const map = {
-    B: "ቢ",
-    I: "አይ",
-    N: "ኤን",
-    G: "ጂ",
-    O: "ኦ"
-  };
 
-  return map[letter] || letter;
-}
 let selectedCards = new Set();
 
 
@@ -1243,13 +1257,8 @@ function updateCalledNumbers(state) {
   if (lastNumber && lastNumber !== calledNumbers[calledNumbers.length - 1]) {
 
     // 🔊 CALL SOUND HERE
-   const letter = getBingoLetter(lastNumber);
-
-if (currentLang === "am") {
-  speakNumber(convertToAmharicLetter(letter), lastNumber, "en-US");
-} else {
-  speakNumber(letter, lastNumber, getSpeechLang());
-}
+    const letter = getBingoLetter(lastNumber);
+    speakNumber(letter, lastNumber, getSpeechLang());
   }
 
   calledNumbers = newNumbers;
