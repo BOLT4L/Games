@@ -186,32 +186,42 @@ function numberToAmharic(num) {
 function speakNumber(letter, number) {
 
   let text;
+  let lang = getSpeechLang(); // ✅ use correct language
 
   if (currentLang === "am") {
     const amNumber = numberToAmharic(number);
-
-    // ⚠️ Force safe pronunciation
     text = `${letter} ${amNumber}`;
-
   } else {
     text = `${letter} ${number}`;
   }
 
-  const utterance = new SpeechSynthesisUtterance();
+  const utterance = new SpeechSynthesisUtterance(text);
 
-  // 🔥 CRITICAL FIX
-  utterance.text = text;
-  utterance.lang = "en-US";
+  // ✅ SET CORRECT LANGUAGE
+  utterance.lang = lang;
 
-  // 🔥 FORCE a working voice
   const voices = speechSynthesis.getVoices();
-  const voice = voices.find(v => v.lang.startsWith("en"));
 
-  if (voice) utterance.voice = voice;
+  // ✅ Try exact language match first
+  let voice = voices.find(v => v.lang === lang);
 
-  // 🔥 Cancel any stuck speech
+  // ✅ fallback (important for Amharic)
+  if (!voice && currentLang === "am") {
+    voice = voices.find(v => v.lang.includes("am"));
+  }
+
+  // ✅ fallback to any available voice
+  if (!voice) {
+    voice = voices.find(v => v.lang.startsWith(lang.split("-")[0]));
+  }
+
+  if (voice) {
+    utterance.voice = voice;
+  } else {
+    console.warn("No matching voice found for", lang);
+  }
+
   speechSynthesis.cancel();
-
   speechSynthesis.speak(utterance);
 }
 let selectedCards = new Set();
