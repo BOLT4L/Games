@@ -356,31 +356,32 @@ function startAutoBingoWatcher(){
 
     const numbers = allCards[selectedCard];
     if(!numbers) return;
+
+    // ✅ ensure center is always marked
     if (numbers.includes(0) && !markedCells.has(0)) {
       markedCells.add(0);
       updateSingleCell(0);
     }
+
     const drawn = currentState.drawn_numbers;
+
+    // ✅ FIX: mark ALL drawn numbers (important if auto starts late)
+    drawn.forEach(num => {
+      if(numbers.includes(num) && !markedCells.has(num)){
+        toggleMark(num);
+      }
+    });
+
+    // OPTIONAL optimization (not required anymore)
     const latestNumber = drawn[drawn.length - 1];
-
-    // ✅ ONLY process NEW number
-    if(!latestNumber || latestNumber === lastProcessedNumber) return;
-
-    lastProcessedNumber = latestNumber;
-
-    console.log("🎯 New number:", latestNumber);
-
-    // ✅ If number exists in my card → mark it
-    if(numbers.includes(latestNumber)){
-      toggleMark(latestNumber);
-      console.log("✅ Auto marked:", latestNumber);
+    if(latestNumber && latestNumber !== lastProcessedNumber){
+      lastProcessedNumber = latestNumber;
     }
 
-    // ✅ Now check win AFTER marking
+    // ✅ check win AFTER marking everything
     const hasWin = checkWin(numbers, markedCells);
 
     if(hasWin && !hasCalledBingo){
-
       socket.emit("bingo", {
         room_id: ROOM_ID,
         user_id: USER_ID,
@@ -392,7 +393,7 @@ function startAutoBingoWatcher(){
       showPopup("Auto Bingo Called!");
     }
 
-  }, 500); // faster reaction
+  }, 500);
 
 }
 
