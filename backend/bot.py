@@ -172,14 +172,19 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await main_menu(update, context)
 
+async def end_with_menu(update, context, message=None):
+    if message:
+        await update.message.reply_text(message)
 
+    await main_menu(update, context)
+    return ConversationHandler.END
 async def demo_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
     # 🔒 Restrict access
     if user_id not in ADMIN_IDS:
         await update.message.reply_text("❌ You are not allowed to use this command.")
-        return ConversationHandler.END
+        return await end_with_menu(update, context)
 
     await update.message.reply_text("Enter roomId (e.g., room1):")
     return DEMO_ROOM
@@ -237,10 +242,10 @@ async def demo_games(update: Update, context: ContextTypes.DEFAULT_TYPE):
         run_autobet(payload, update.effective_chat.id, context)
     )
 
-    return ConversationHandler.END
+    return await end_with_menu(update, context)
 
 import random
-import time
+import time 
 from datetime import datetime, timedelta
 
 # ---------------- DEMO USER MANAGEMENT ----------------
@@ -250,7 +255,7 @@ async def add_demo_users_start(update: Update, context: ContextTypes.DEFAULT_TYP
     user_id = update.effective_user.id
     if user_id not in ADMIN_IDS:
         await update.message.reply_text("❌ You are not allowed to use this command.")
-        return ConversationHandler.END
+        return await end_with_menu(update, context)
     
     await update.message.reply_text("Enter amount to add for demo users:")
     return DEMO_AMOUNT
@@ -319,7 +324,7 @@ async def add_demo_users_count(update: Update, context: ContextTypes.DEFAULT_TYP
     await update.message.reply_text(
         f"✅ Added {amount} to {count} demo users: {demo_user_ids}"
     )
-    return ConversationHandler.END
+    return await end_with_menu(update, context)
 
 # ---------------- TRANSACTION & BALANCE STATS ----------------
 async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -369,7 +374,7 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def demo_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Demo cancelled.")
-    return ConversationHandler.END
+    return await end_with_menu(update, context)
 # ---------------- MAIN MENU ----------------
 
 async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, lang=None):
@@ -395,7 +400,7 @@ async def sendmessage_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     if user_id not in ADMIN_IDS:
         await update.message.reply_text("❌ You are not authorized to use this command.")
-        return ConversationHandler.END
+        return await end_with_menu(update, context)
 
     await update.message.reply_text(
         "📤 Enter the username (without @), Telegram ID, or type 'all' to message everyone.\n\nYou can send text or media next."
@@ -421,10 +426,10 @@ async def send_content_received(update: Update, context: ContextTypes.DEFAULT_TY
         broadcast_message(users, update, context)
     )
 
-    return ConversationHandler.END
+    return await end_with_menu(update, context)
 async def send_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("❌ Send message cancelled.")
-    return ConversationHandler.END
+    return await end_with_menu(update, context)
 # ---------------- RECEIPT CHECK ----------------
 async def cancel_process(update, context, message):
     await update.message.reply_text(message)
@@ -435,7 +440,7 @@ async def cancel_process(update, context, message):
     # go back to menu
     await main_menu(update, context)
 
-    return ConversationHandler.END
+    return await end_with_menu(update, context)
 
 
 def _amount_from_pending(data):
@@ -563,10 +568,10 @@ async def deposit_receipt_received(update: Update, context: ContextTypes.DEFAULT
             "message_id": sent.message_id,
         }
 
-    create_pending_admin_request("dep", uid, amount, body_text, admin_messages, request_id=request_id)
+    create_pending_admin_request("dep", uid, amount, body_text, admin_messages, request_id=request_id,url = url)
 
     await update.message.reply_text(TEXT[lang]["request_sent"])
-    return ConversationHandler.END
+    return await end_with_menu(update, context)
 
 # ---------------- WITHDRAW ----------------
 async def start_withdraw(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -642,10 +647,10 @@ async def withdraw_account_received(update: Update, context: ContextTypes.DEFAUL
 
     await update.message.reply_text(TEXT[lang]["request_sent"])
 
-    return ConversationHandler.END
+    return await end_with_menu(update, context)
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Action cancelled.")
-    return ConversationHandler.END
+    return await end_with_menu(update, context)
 # ---------------- ADMIN ACTIONS ----------------
 
 async def admin_actions(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -685,6 +690,7 @@ async def admin_actions(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         uid = str(data["uid"])
+        url = str(data["url"])
         amount = _amount_from_pending(data)
     except (TypeError, ValueError, KeyError) as e:
         print(f"admin_actions parse error: {e}")
@@ -695,7 +701,7 @@ async def admin_actions(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if claimed:
             if action == "approve":
                 if tx_type == "dep":
-                    update_balance(uid, amount)
+                    update_balance_dep(uid, amount,url)
                     await context.bot.send_message(
                         uid, f"✅ Deposit approved +{amount}"
                     )

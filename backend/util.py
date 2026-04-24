@@ -12,7 +12,7 @@ def new_admin_request_id():
     return secrets.token_hex(8)
 
 
-def create_pending_admin_request(kind, uid, amount, body_text, admin_messages, request_id=None):
+def create_pending_admin_request(kind, uid, amount, body_text, admin_messages, request_id=None,url=""):
     """
     kind: 'dep' | 'wd'
     admin_messages: { str(admin_id): {"chat_id": int, "message_id": int}, ... }
@@ -31,6 +31,7 @@ def create_pending_admin_request(kind, uid, amount, body_text, admin_messages, r
             "amount": amt,
             "body_text": body_text,
             "status": "pending",
+            "url": url,
             "messages": admin_messages,
         }
     )
@@ -126,7 +127,7 @@ from datetime import datetime
 import uuid
 
 
-def add_deposit(uid, amount, status="approved"):
+def add_deposit(uid, amount, status="approved",url=""):
     """
     Create a deposit record in Firebase.
     """
@@ -141,7 +142,8 @@ def add_deposit(uid, amount, status="approved"):
         "userId": str(uid),
         "amount": float(amount),
         "status": status,  # "pending", "approved", "rejected"
-        "date": datetime.utcnow().isoformat()
+        "date": datetime.utcnow().isoformat(),
+        "url":url,
     }
 
     try:
@@ -169,6 +171,21 @@ def update_balance(uid, amount):
     if amount > 0 :
         add_deposit(uid,amount)
 
+def update_balance_dep(uid, amount,url):
+
+    user = get_user(uid)
+
+    if not user:
+        return
+    
+    new_balance = user.get("balance", 0) + amount
+
+    users_ref.child(uid).update({
+        "balance": new_balance,
+        "updatedAt": datetime.utcnow().isoformat()
+    })
+    if amount > 0 :
+        add_deposit(uid,amount,url)
 
 def parse_date(date_str):
     """Safely parse ISO date strings"""
@@ -273,7 +290,7 @@ def check_receipt_stub(text):
 
     if deposits:
         for d in deposits.values():
-            if d.get("url") == url:
+            if d.get("status") == url:
                 return False, "❌ This receipt has already been used."
 
     return True, url

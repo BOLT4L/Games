@@ -739,7 +739,7 @@ async function renderGameInfo(state){
   const userData = await fetchUser(); // ✅ get latest balance
   const userBalance = userData ? userData.balance : 0;
   const playersCount = (state.cards || []).length;
-  const pot = state.pot || playersCount * state.betAmount||  0;
+  const pot = state.pot || Number(playersCount * state.betAmount)||  0;
   const bet = state.bet_amount || state.bet || 0;
   const roomState = state.state || "unknown";
 
