@@ -265,6 +265,7 @@ function renderSelectedCardPreview(){
       </button>
       <button 
     class="auto-btn ${autoBetEnabled ? "on" : "off"}"
+    style="padding:10px 20px;"
     onclick="toggleAutoBet()"
   >
     ${autoBetEnabled ? "🟢" : "⚪"} 
