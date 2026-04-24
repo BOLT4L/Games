@@ -351,7 +351,10 @@ function startAutoBingoWatcher(){
 
   autoBingoInterval = setInterval(() => {
 
-    if(!autoBingoEnabled || !selectedCard  || !currentState) return;
+    if(!autoBingoEnabled || !selectedCard  || !currentState){
+      console.log("Auto Bingo: Missing conditions, skipping check");
+      return;
+    } 
     if(currentState.state !== "playing") return;
 
     const numbers = allCards[selectedCard];
