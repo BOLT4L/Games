@@ -263,6 +263,13 @@ function renderSelectedCardPreview(){
         style="padding:10px 20px;background:red;color:white;border:none;border-radius:6px">
         ${t("cancel_bet")}
       </button>
+      <button 
+    class="auto-btn ${autoBetEnabled ? "on" : "off"}"
+    onclick="toggleAutoBet()"
+  >
+    ${autoBetEnabled ? "🟢" : "⚪"} 
+    ${autoBetEnabled ? t("auto_bet_on") : t("auto_bet_off")}
+  </button>
     `;
   } else {
     html += `
