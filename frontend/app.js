@@ -16,6 +16,7 @@ let resultShown = false;
 let ROOM_BET_AMOUNT = 0;
 let lastCards = {};
 let autoBetEnabled = false;
+let autoBetCardId = null;
 let autoBetGamesLeft = 0;
 let lastProcessedNumber = null;
 let autoBingoEnabled = false;
@@ -318,11 +319,16 @@ function toggleAutoBet(){
 
   autoBetEnabled = !autoBetEnabled;
 
-  if(autoBetEnabled){
+ if(autoBetEnabled){
     autoBetGamesLeft = 5;
+
+    // ✅ store current selected card
+    autoBetCardId = selectedCard;
+
     showPopup("Auto Bet ON");
   } else {
     autoBetGamesLeft = 0;
+    autoBetCardId = null; // reset
     showPopup("Auto Bet OFF");
   }
 
@@ -989,25 +995,26 @@ function handleStateUpdate(state) {
   renderSelectedCardPreview();
   const alreadyPicked = (normalized.cards || []).some(c => c[1] === USER_ID);
 
-  if (autoBetEnabled && !alreadyPicked && myPickedCard && autoBetGamesLeft > 0) {
+  if (autoBetEnabled && !alreadyPicked && autoBetCardId && autoBetGamesLeft > 0) {
 
-    setTimeout(() => {
-      socket.emit("pick", {
-        room_id: ROOM_ID,
-        user_id: USER_ID,
-        card_id: myPickedCard,
-        bet_amount: ROOM_BET_AMOUNT
-      });
+  setTimeout(() => {
+    socket.emit("pick", {
+      room_id: ROOM_ID,
+      user_id: USER_ID,
+      card_id: autoBetCardId, // ✅ use stored card
+      bet_amount: ROOM_BET_AMOUNT
+    });
 
-      autoBetGamesLeft--;
+    autoBetGamesLeft--;
 
-      if (autoBetGamesLeft <= 0) {
-        autoBetEnabled = false;
-        showPopup("Auto Bet finished");
-      }
+    if (autoBetGamesLeft <= 0) {
+      autoBetEnabled = false;
+      autoBetCardId = null;
+      showPopup("Auto Bet finished");
+    }
 
-    }, 1000);
-  }
+  }, 1000);
+}
 
   arenaInitialized = false;
   lastRoomState = roomState;
