@@ -273,3 +273,51 @@
 .lang-buttons button.active {
   background: #22c55e;
 }
+/* AUTO BUTTONS CONTAINER */
+.auto-controls {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+/* BASE BUTTON */
+.auto-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  min-width: 120px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+/* OFF STATE */
+.auto-btn.off {
+  background: linear-gradient(135deg, #374151, #1f2937);
+  color: #9ca3af;
+}
+
+/* ON STATE */
+.auto-btn.on {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: white;
+}
+
+/* HOVER EFFECT */
+.auto-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+}
+
+/* CLICK EFFECT */
+.auto-btn:active {
+  transform: scale(0.95);
+}

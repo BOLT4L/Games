@@ -476,15 +476,25 @@ function renderPlayerCard(){
           ${t("bingo")} 
         </button>
       </div>
-       <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
-    <button onclick="toggleAutoBet()">
-      ${autoBetEnabled ? t("auto_bet_on") : t("auto_bet_off")}
-    </button>
+      <div class="auto-controls">
 
-    <button onclick="toggleAutoBingo()">
-      ${autoBingoEnabled ? t("auto_bingo_on") : t("auto_bingo_off")}
-    </button>
-  </div></div>`;
+  <button 
+    class="auto-btn ${autoBetEnabled ? "on" : "off"}"
+    onclick="toggleAutoBet()"
+  >
+    ${autoBetEnabled ? "🟢" : "⚪"} 
+    ${autoBetEnabled ? t("auto_bet_on") : t("auto_bet_off")}
+  </button>
+
+  <button 
+    class="auto-btn ${autoBingoEnabled ? "on" : "off"}"
+    onclick="toggleAutoBingo()"
+  >
+    ${autoBingoEnabled ? "🟢" : "⚪"} 
+    ${autoBingoEnabled ? t("auto_bingo_on") : t("auto_bingo_off")}
+  </button>
+
+</div></div>`;
 
   container.innerHTML = html;
 }
