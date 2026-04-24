@@ -47,6 +47,12 @@ const LANG = {
     winner_cards: "አሸናፊ ካርዶች",
     auto_bet: "አውቶ ቤት",
   auto_bingo: "አውቶ ቢንጎ",
+
+  auto_bet_on: "አውቶ ቤት አብራ",
+  auto_bet_off: "አውቶ ቤት ጠፍቷል",
+
+  auto_bingo_on: "አውቶ ቢንጎ አብራ",
+  auto_bingo_off: "አውቶ ቢንጎ ጠፍቷል",
   },
   en: {
     select_card: "Select Your Card",
@@ -71,8 +77,14 @@ const LANG = {
     congratulations: "Congratulations! You won with card #",
     game_over: "Game Over!",
     winner_cards: "Winner card(s):",
-     auto_bet: "Auto Bet",
+    auto_bet: "Auto Bet",
   auto_bingo: "Auto Bingo",
+
+  auto_bet_on: "Auto Bet ON",
+  auto_bet_off: "Auto Bet OFF",
+  auto_bingo_on: "Auto Bingo ON",
+  auto_bingo_off: "Auto Bingo OFF",
+
 
   },
   or: {
@@ -100,6 +112,12 @@ const LANG = {
     winner_cards: "Kaardii mo'ataa",
   auto_bet: "Ofumaan Sharata",
   auto_bingo: "Ofumaan BINGO",
+
+  auto_bet_on: "Ofumaan Sharata Itti Jira",
+auto_bet_off: "Ofumaan Sharata Dhaabbate",
+
+auto_bingo_on: "Ofumaan BINGO Itti Jira",
+auto_bingo_off: "Ofumaan BINGO Dhaabbate",
   }
 };
 let currentLang = "am"; // default
@@ -302,13 +320,13 @@ function toggleAutoBet(){
 
   if(autoBetEnabled){
     autoBetGamesLeft = 5;
-    showPopup(t("auto_bet_on"));
+    showPopup("Auto Bet ON");
   } else {
     autoBetGamesLeft = 0;
-    showPopup(t("auto_bet_off"));
+    showPopup("Auto Bet OFF");
   }
 
-  updateAutoButtons(); // 👈 add this
+  renderPlayerCard(); // ✅ re-render button text
 }
 function toggleAutoBingo(){
   if(!myPickedCard){
@@ -325,6 +343,7 @@ function toggleAutoBingo(){
     stopAutoBingoWatcher();
     showPopup("Auto Bingo OFF");
   }
+  renderPlayerCard();
 }
 function startAutoBingoWatcher(){
 
@@ -458,8 +477,13 @@ function renderPlayerCard(){
         </button>
       </div>
        <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
-    <button onclick="toggleAutoBet()">${t("auto_bet")}</button>
-    <button onclick="toggleAutoBingo()">${t("auto_bingo")}</button>
+    <button onclick="toggleAutoBet()">
+      ${autoBetEnabled ? t("auto_bet_on") : t("auto_bet_off")}
+    </button>
+
+    <button onclick="toggleAutoBingo()">
+      ${autoBingoEnabled ? t("auto_bingo_on") : t("auto_bingo_off")}
+    </button>
   </div></div>`;
 
   container.innerHTML = html;
