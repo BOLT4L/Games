@@ -231,7 +231,7 @@ async def demo_games(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "roomId": context.user_data.get("demo_room"),
         "quantity": context.user_data.get("demo_quantity"),
         "games": context.user_data.get("demo_games"),
-        "callbackUrl": "http://18.191.217.162/autobet-callback"
+        "callbackUrl": "http://18.191.217.162:8080/autobet-callback"
     }
 
     # ✅ Respond immediately
@@ -811,9 +811,9 @@ async def room_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
 from fastapi import FastAPI, Request
 import asyncio
 
-app = FastAPI()
+apps = FastAPI()
 
-@app.post("/autobet-callback")
+@apps.post("/autobet-callback")
 async def autobet_callback(req: Request):
     data = await req.json()
 
@@ -831,10 +831,16 @@ async def autobet_callback(req: Request):
         await telegram_app.bot.send_message(admin_id, text)
 
     return {"ok": True}
+
+import uvicorn
+import threading
+
+def run_fastapi():
+    uvicorn.run(apps, host="0.0.0.0", port=8080)
 def main():
     global telegram_app
 
-    
+    threading.Thread(target=run_fastapi, daemon=True).start()
     app = Application.builder().token(BOT_TOKEN).build()
     telegram_app = app
     app.add_handler(CommandHandler("start", start))

@@ -20,47 +20,33 @@ function getDrawnNumbersFromCard(cardNumbers, drawnNumbers) {
   const drawnSet = new Set(drawnNumbers);
   return cardNumbers.filter(n => drawnSet.has(n));
 }
-async function waitForNextGame(roomId) {
-  console.log("⏳ Waiting for game to end...");
+async function waitForNextGame(getRoomState) {
+  console.log("⏳ Waiting for game to end (socket)...");
 
-  // wait until game ends
+  // Wait for "ended"
   while (true) {
-    const res = await fetch(`${API_BASE}/room/${roomId}/state`, );
+    const state = getRoomState();
 
-    if (!res.ok) {
-      await sleep(1000);
-      continue;
-    }
-
-    const data = await res.json();
-
-    if (data.state === "ended") {
+    if (state && state.state === "ended") {
       console.log("✅ Game ended");
       break;
     }
 
-    await sleep(1000);
+    await sleep(200);
   }
 
   console.log("⏳ Waiting for next game (waiting state)...");
 
-  // wait until new game starts (waiting)
+  // Wait for "waiting"
   while (true) {
-    const res = await fetch(`${API_BASE}/room/${roomId}/state`, );
+    const state = getRoomState();
 
-    if (!res.ok) {
-      await sleep(1000);
-      continue;
-    }
-
-    const data = await res.json();
-
-    if (data.state === "waiting") {
+    if (state && state.state === "waiting") {
       console.log("🚀 New game started");
       break;
     }
 
-    await sleep(1000);
+    await sleep(200);
   }
 }
 function checkWinningPattern(card, drawnNumbers) {
@@ -117,7 +103,7 @@ async function playGames(roomId, quantity, games) {
       console.log(socket)
         socket.on("connect", () => {
           console.log("✅ Connected:", socket.id);
-          socket.emit("join_room", { roomId });
+          socket.emit("join_room", { room_id: roomId });
         });
 
         socket.on("state_update", (state) => {
@@ -176,7 +162,7 @@ const allCards = JSON.parse(
     
 
    await waitForStateReady();
-  const roomState = getRoomState();
+   const roomState = getRoomState();
     if (!roomState || !roomState.cards) {
       console.log("Invalid room state");
       break;
@@ -261,7 +247,7 @@ if (result.success) {
 }
 
     availableCards.splice(idx, 1);
-    await sleep(1000);
+    await sleep(1500);
   }
 }
 
@@ -272,45 +258,44 @@ if (result.success) {
     // After all demo users have picked their cards, monitor bingo until bingo is called or game ends.
     if (Object.keys(userPickedCards).length > 0) {
       console.log("🚀 Starting bingo monitoring for this round...");
-      await monitorBingo(roomId, userPickedCards, allCards);
+    await monitorBingo(roomId, userPickedCards, allCards, getRoomState, socket);
     } else {
       console.log("ℹ️ No demo users picked cards this round; skipping bingo monitoring.");
     }
 
     // ✅ wait only if NOT the last game
     if (game < games - 1) {
-      await waitForNextGame(roomId);
+      await waitForNextGame(getRoomState);
     }
   
   }
 
   return resultSummary;
 }
-async function callBingo(roomId, userId, cardId, pattern) {
-  const res = await fetch(`${API_BASE}/room/${roomId}/bingo`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+async function callBingo(socket, roomId, userId, cardId, pattern) {
+  return new Promise((resolve) => {
+    socket.emit("bingo", {
+      room_id: roomId,
       user_id: userId,
       card_id: cardId,
       pattern: pattern
-    })
-  });
+    });
 
-  const data = await res.json();
-  return data.success;
+    socket.once("bingo_result", (res) => {
+      resolve(res.success);
+    });
+  });
 }
-async function monitorBingo(roomId, userPickedCards, allCards) {
+async function monitorBingo(roomId, userPickedCards, allCards, getRoomState, socket) {
   console.log("👀 Monitoring bingo (SOCKET MODE)...");
 
-  let bingoCalled = false;
   let lastProcessedLength = 0;
 
-  while (!bingoCalled) {
+  while (true) {
+    const roomState = getRoomState();   // ✅ FIX: always fresh
 
     if (!roomState) {
+      console.log("No socket state yet");
       await sleep(200);
       continue;
     }
@@ -322,14 +307,8 @@ async function monitorBingo(roomId, userPickedCards, allCards) {
       return false;
     }
 
-    if (state !== "playing") {
-      await sleep(200);
-      continue;
-    }
-
     const drawnNumbers = roomState.drawn_numbers || [];
 
-    // ✅ ONLY react when new number arrives
     if (drawnNumbers.length === lastProcessedLength) {
       await sleep(100);
       continue;
@@ -351,11 +330,11 @@ async function monitorBingo(roomId, userPickedCards, allCards) {
 
           console.log(`🏆 BINGO FOUND! User ${userId}`);
 
-          const success = await callBingo(roomId, userId, cardId, pattern);
+          const success = await callBingo(socket,roomId, userId, cardId, pattern);
 
           if (success) {
             console.log("🎉 BINGO CALLED SUCCESSFULLY");
-            return;
+            return true;
           }
         }
       }

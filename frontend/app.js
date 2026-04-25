@@ -183,47 +183,7 @@ function numberToAmharic(num) {
 
   return num.toString(); // fallback
 }
-function speakNumber(letter, number) {
 
-  let text;
-  let lang = getSpeechLang(); // ✅ use correct language
-
-  if (currentLang === "am") {
-    const amNumber = numberToAmharic(number);
-    text = `${letter} ${amNumber}`;
-  } else {
-    text = `${letter} ${number}`;
-  }
-
-  const utterance = new SpeechSynthesisUtterance(text);
-
-  // ✅ SET CORRECT LANGUAGE
-  utterance.lang = lang;
-
-  const voices = speechSynthesis.getVoices();
-
-  // ✅ Try exact language match first
-  let voice = voices.find(v => v.lang === lang);
-
-  // ✅ fallback (important for Amharic)
-  if (!voice && currentLang === "am") {
-    voice = voices.find(v => v.lang.includes("am"));
-  }
-
-  // ✅ fallback to any available voice
-  if (!voice) {
-    voice = voices.find(v => v.lang.startsWith(lang.split("-")[0]));
-  }
-
-  if (voice) {
-    utterance.voice = voice;
-  } else {
-    console.warn("No matching voice found for", lang);
-  }
-
-  speechSynthesis.cancel();
-  speechSynthesis.speak(utterance);
-}
 let selectedCards = new Set();
 
 
@@ -1279,7 +1239,6 @@ function updateCalledNumbers(state) {
 
     // 🔊 CALL SOUND HERE
     const letter = getBingoLetter(lastNumber);
-    speakNumber(letter, lastNumber, getSpeechLang());
   }
 
   calledNumbers = newNumbers;
