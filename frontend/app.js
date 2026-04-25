@@ -640,8 +640,16 @@ function renderPlayerCard(){
 }
 function updateCalledBoard(){
 
-  const container = document.getElementById("calledBoard");
-  if(!container) return;
+ const container = document.getElementById("calledBoard");
+  
+  if(!container) {
+    // If we are playing but board is missing, force re-init
+    if(currentState && currentState.state === "playing") {
+        arenaInitialized = false; 
+        renderGameArena(currentState);
+    }
+    return;
+  }
 
   const last = calledNumbers[calledNumbers.length-1];
   const prev = calledNumbers[calledNumbers.length-2];
