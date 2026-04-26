@@ -806,7 +806,10 @@ async function fetchUser() {
 }
 function clearPreview(){
   const container = document.getElementById("selectedCardPreview");
-  if(container) container.innerHTML = "";
+  if(container){
+    container.innerHTML = "";
+    container.style.display = "none"; // 🔥 important
+  }
 }
 function attachPreviewEvents() {
   const placeBtn = document.getElementById("placeBetBtn");
@@ -1122,7 +1125,7 @@ function handleStateUpdate(state) {
   // 🎯 WAITING / COUNTDOWN
   // =========================
   if (roomState === "waiting" || roomState === "countdown") {
-
+  if (lastRoomState === "playing") return;
   // 🔥 reset player state if previous state was ended
   if(lastRoomState === "ended") {
 
