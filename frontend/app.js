@@ -808,7 +808,7 @@ function clearPreview(){
   const container = document.getElementById("selectedCardPreview");
   if(container){
     container.innerHTML = "";
-    container.style.display = "none"; // 🔥 important
+  
   }
 }
 function attachPreviewEvents() {
