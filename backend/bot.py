@@ -390,6 +390,7 @@ async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, lang=Non
         💰 {TEXT[lang]["deposit"]} → /deposit  
         💸 {TEXT[lang]["withdraw"]} → /withdraw    
         🌐 {TEXT[lang]["change_lang"]} → /changelanguage
+        🌐 Telegram Channel → https://t.me/fridaybingos
             """
 
     await context.bot.send_message(chat_id, text)

@@ -323,3 +323,11 @@
 .auto-btn:active {
   transform: scale(0.95);
 }
+#selectedCardPreview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.hidden {
+  display: none !important;
+}
