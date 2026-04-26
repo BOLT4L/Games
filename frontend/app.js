@@ -252,6 +252,9 @@ else if(selectedCard === cardId) className += " selected";
 }
 
 function renderSelectedCardPreview(){
+   if(currentState && currentState.state === "playing"){
+    return;
+  }
 
   const container = document.getElementById("selectedCardPreview");
 
