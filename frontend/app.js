@@ -124,7 +124,14 @@ auto_bingo_off: "Ofumaan BINGO Dhaabbate",
 let currentLang = "am"; // default
 // Add this near the top of your JS, after all variables are defined
 document.addEventListener("click", (e) => {
-  if (e.target.classList.contains("card")) { 
+  if (e.target.classList.contains("card")) {
+
+    // 🔥 BLOCK disabled cards
+    if (e.target.classList.contains("disabled") ||
+        e.target.classList.contains("my-card")) {
+      return;
+    }
+
     const cardId = e.target.dataset.id;
     if(cardId) selectCard(cardId);
   }
