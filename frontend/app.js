@@ -269,6 +269,7 @@ function renderSelectedCardPreview(){
     container.innerHTML = "";
     return;
   }
+  container.style.display = "block";
 
   const numbers = allCards[selectedCard];
 
@@ -808,7 +809,7 @@ function clearPreview(){
   const container = document.getElementById("selectedCardPreview");
   if(container){
     container.innerHTML = "";
-  
+    container.style.display = "none"; // 🔥 important
   }
 }
 function attachPreviewEvents() {
