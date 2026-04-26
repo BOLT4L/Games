@@ -269,8 +269,7 @@ function renderSelectedCardPreview(){
     container.innerHTML = "";
     return;
   }
-   container.classList.remove("hidden");
-
+  container.style.display = "block";
 
   const numbers = allCards[selectedCard];
 
@@ -809,8 +808,8 @@ async function fetchUser() {
 function clearPreview(){
   const container = document.getElementById("selectedCardPreview");
   if(container){
-    container.classList.add("hidden");
     container.innerHTML = "";
+    container.style.display = "none"; // 🔥 important
   }
 }
 function attachPreviewEvents() {
@@ -1188,9 +1187,6 @@ function handleStateUpdate(state) {
   clearPreview();
 
  if (roomState === "playing") {
-  if (lastRoomState !== "playing") {
-    clearPreview(); // 🔥 only once on transition
-  }
    if(autoBingoEnabled){
     startAutoBingoWatcher(); // ✅ restore after reload
   }
