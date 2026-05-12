@@ -110,7 +110,7 @@ def create_user(user, phone, lang):
     now = datetime.utcnow().isoformat()
 
     users_ref.child(uid).set({
-        "balance": 10,
+        "balance": 5,
         "createdAt": now,
         "gamesPlayed": 0,
         "gamesWon": 0,
@@ -295,6 +295,8 @@ def check_receipt_stub(text):
 
     return True, url
 #---------------------------------------
+
+
 def get_available_rooms():
     rooms_data = rooms_ref.get()
 

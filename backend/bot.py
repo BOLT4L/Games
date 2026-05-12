@@ -203,8 +203,238 @@ async def demo_quantity(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("How many games:")
     return DEMO_GAMES
+
+from datetime import datetime, timedelta
+
+async def take_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # 🔒 Admin only
+    if update.effective_user.id not in ADMIN_IDS:
+        await update.message.reply_text("❌ Not authorized")
+        return
+
+    if not context.args:
+        await update.message.reply_text("Usage: /take <amount>")
+        return
+
+    try:
+        target_amount = float(context.args[0])
+    except:
+        await update.message.reply_text("❌ Invalid amount")
+        return
+
+    revenue_ref = db.reference("revenue")
+    revenues = revenue_ref.get() or {}
+
+    total_taken = 0
+    updated_ids = []
+
+    # 🔑 sort by oldest first (important for consistency)
+    sorted_items = sorted(
+        revenues.items(),
+        key=lambda x: x[1].get("datetime", 0)
+    )
+
+    for key, val in sorted_items:
+        try:
+            if val.get("drawned") is not False:
+                continue
+
+            amount = float(val.get("amount", 0))
+
+            # ✅ mark as drawned
+            revenue_ref.child(key).update({
+                "drawned": True
+            })
+
+            total_taken += amount
+            updated_ids.append(key)
+
+            # ✅ stop when reached target
+            if total_taken >= target_amount:
+                break
+
+        except Exception as e:
+            print("Take error:", e)
+
+    await update.message.reply_text(
+        f"""
+💸 Take Completed
+
+🎯 Target: {target_amount}
+✅ Collected: {total_taken}
+📦 Entries Used: {len(updated_ids)}
+"""
+    )
+async def revenue_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    revenue_ref = db.reference("revenue").get() or {}
+    deposits_ref = db.reference("deposits").get() or {}
+    users_ref = db.reference("users").get() or {}
+
+    revenue_stats = {"daily": 0, "weekly": 0, "monthly": 0}
+    deposit_stats = {"daily": 0, "weekly": 0, "monthly": 0}
+
+   
+    # ---- Deposits ----
+    now = datetime.utcnow()
+
+    daily_cutoff = now - timedelta(days=1)
+    weekly_cutoff = now - timedelta(days=7)
+    monthly_cutoff = now - timedelta(days=30)
+
+    deposit_stats = {"daily": 0, "weekly": 0, "monthly": 0}
+
+    for _, val in deposits_ref.items():
+        try:
+            user_id = val.get("userId")
+
+            # skip 1–30
+            if user_id and user_id.isdigit() and 1 <= int(user_id) <= 100:
+                continue
+
+            amount = float(val.get("amount", 0))
+            date_str = val.get("date")
+
+            if not date_str:
+                continue
+
+            dt = datetime.fromisoformat(date_str)
+
+            if dt >= daily_cutoff:
+                deposit_stats["daily"] += amount
+
+            if dt >= weekly_cutoff:
+                deposit_stats["weekly"] += amount
+
+            if dt >= monthly_cutoff:
+                deposit_stats["monthly"] += amount
+
+        except Exception as e:
+            print("Deposit error:", e)
+
+    revenue_stats = {"daily": 0, "weekly": 0, "monthly": 0}
+
+    for _, val in revenue_ref.items():
+        try:
+            # ✅ ONLY include drawned = False
+            if val.get("drawned") is not False:
+                continue
+
+            amount = float(val.get("amount", 0))
+            timestamp = val.get("datetime")
+
+            if not timestamp:
+                continue
+
+            dt = datetime.utcfromtimestamp(timestamp / 1000)
+
+            if dt >= daily_cutoff:
+                revenue_stats["daily"] += amount
+
+            if dt >= weekly_cutoff:
+                revenue_stats["weekly"] += amount
+
+            if dt >= monthly_cutoff:
+                revenue_stats["monthly"] += amount
+
+        except Exception as e:
+            print("Revenue error:", e)
+ 
+    # ---- Total User Balance ----
+    total_balance = 0
+    for uid, user in users_ref.items():
+        try:
+            if uid.isdigit() and 1 <= int(uid) <= 100:
+                continue
+
+            total_balance += user.get("balance", 0)
+        except:
+            continue
+
+    # ---- Response ----
+    text = f"""
+📊 Revenue Report
+
+💰 Revenue:
+- Daily: {revenue_stats['daily']}
+- Weekly: {revenue_stats['weekly']}
+- Monthly: {revenue_stats['monthly']}
+
+💳 Deposits:
+- Daily: {deposit_stats['daily']}
+- Weekly: {deposit_stats['weekly']}
+- Monthly: {deposit_stats['monthly']}
+
+👥 Total User Balance:
+{total_balance}
+"""
+
+    await update.message.reply_text(text)
+
+async def check_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("Usage: /check <user_id>")
+        return
+
+    user_id = context.args[0]
+
+    user = db.reference(f"users/{user_id}").get()
+    transactions = db.reference("transactions").get() or {}
+
+    if not user:
+        await update.message.reply_text("User not found")
+        return
+
+    total_wins_amount = 0
+    last_win = None
+    total_wins_count = 0
+
+    for _, tx in transactions.items():
+        try:
+            # ✅ match user
+            if str(tx.get("user_id")) != str(user_id):
+                continue
+
+            # ✅ OPTIONAL: filter only win-related transactions
+            # adjust this depending on your system
+            
+
+            amount = float(tx.get("amount", 0))
+            timestamp = tx.get("timestamp")
+
+            total_wins_amount += amount
+            total_wins_count += 1
+
+            if timestamp:
+                dt = datetime.fromtimestamp(timestamp)
+
+                if not last_win or dt > last_win:
+                    last_win = dt
+
+        except Exception as e:
+            print("Transaction error:", e)
+
+    last_win_str = last_win.strftime("%Y-%m-%d %H:%M:%S") if last_win else "N/A"
+
+    text = f"""
+👤 User ID: {user_id}
+
+🎮 Games:
+- Played: {user.get("gamesPlayed", 0)}
+- Won: {user.get("gamesWon", 0)}
+
+🏆 Transactions:
+- Total Wins: {total_wins_count}
+- Total Win Amount: {total_wins_amount}
+- Last Win: {last_win_str}
+
+💰 Balance:
+{user.get("balance", 0)}
+"""
+
+    await update.message.reply_text(text)
 import asyncio
 import aiohttp
+
 
 async def run_autobet(payload, chat_id, context):
     try:
@@ -296,19 +526,19 @@ async def add_demo_users_amount(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text("❌ Invalid number. Enter amount again:")
         return DEMO_AMOUNT
     context.user_data["demo_amount"] = int(amt)
-    await update.message.reply_text("Enter number of users to add (1-30):")
+    await update.message.reply_text("Enter number of users to add (1-100):")
     return DEMO_USER_COUNT
 
 async def add_demo_users_count(update: Update, context: ContextTypes.DEFAULT_TYPE):
     count = update.message.text.strip()
-    if not count.isdigit() or not (1 <= int(count) <= 30):
+    if not count.isdigit() or not (1 <= int(count) <= 100):
         await update.message.reply_text("❌ Invalid number. Enter number of users (1-30):")
         return DEMO_USER_COUNT
 
     count = int(count)
     amount = context.user_data.get("demo_amount")
 
-    demo_user_ids = random.sample(range(1, 31), count)  # pick without repetition
+    demo_user_ids = random.sample(range(1, 101), count)  # pick without repetition
 
     for uid in demo_user_ids:
         update_balance(str(uid), amount)
@@ -504,7 +734,50 @@ async def broadcast_request_closed_to_admins(
         except Exception as e:
             print(f"broadcast to admin {admin_id}: {e}")
 
+from datetime import datetime, timezone
 
+async def players_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        users_ref = db.reference("users")
+        users = users_ref.get() or {}
+
+        total_players = len(users)
+
+        today = datetime.now(timezone.utc).date()
+        today_count = 0
+
+        for uid, user in users.items():
+            created_at = user.get("created_at")
+
+            if not created_at:
+                continue
+
+            # Handle timestamp (int)
+            if isinstance(created_at, (int, float)):
+                user_date = datetime.fromtimestamp(created_at, tz=timezone.utc).date()
+
+            # Handle ISO string
+            elif isinstance(created_at, str):
+                try:
+                    user_date = datetime.fromisoformat(created_at).date()
+                except:
+                    continue
+            else:
+                continue
+
+            if user_date == today:
+                today_count += 1
+
+        msg = (
+            f"📊 Players Stats\n\n"
+            f"👥 Total Players: {total_players}\n"
+            f"📅 Joined Today: {today_count}"
+        )
+
+        await update.message.reply_text(msg)
+
+    except Exception as e:
+        await update.message.reply_text(f"Error: {str(e)}")
 async def start_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Triggered by 'Deposit' button or /deposit command"""
     uid = update.effective_user.id
@@ -702,12 +975,55 @@ async def admin_actions(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if claimed:
             if action == "approve":
                 if tx_type == "dep":
-                    update_balance_dep(uid, amount,url)
+
+    # 🔒 Recheck receipt before final approval
+                    ok, msg = check_receipt_stub(url)
+
+                    if not ok:
+                        await context.bot.send_message(
+                            query.from_user.id,
+                            f"❌ Cannot approve deposit:\n{msg}"
+                        )
+
+                        await context.bot.send_message(
+                            uid,
+                            "❌ Deposit rejected because receipt already used."
+                        )
+
+                        await query.answer("Duplicate receipt", show_alert=True)
+                        return
+
+                    update_balance_dep(uid, amount, url)
                     await context.bot.send_message(
                         uid, f"✅ Deposit approved +{amount}"
                     )
                 elif tx_type == "wd":
+                    user = get_user(uid)
+
+                    if not user:
+                        await query.answer("User not found", show_alert=True)
+                        return
+
+                    current_balance = user.get("balance", 0)
+
+                    # 🔒 FINAL SAFETY CHECK
+                    if amount > current_balance:
+                        await context.bot.send_message(
+                            query.from_user.id,
+                            f"❌ Cannot approve withdraw.\nUser balance: {current_balance}, requested: {amount}"
+                        )
+
+                        await context.bot.send_message(
+                            uid,
+                            "❌ Withdraw rejected due to insufficient balance."
+                        )
+
+                        await query.answer("Insufficient balance", show_alert=True)
+                        return
+
+                    # ✅ Safe to deduct
                     update_balance(uid, -amount)
+
                     await context.bot.send_message(
                         uid, f"✅ Withdraw approved -{amount}"
                     )
@@ -832,7 +1148,67 @@ async def autobet_callback(req: Request):
         await telegram_app.bot.send_message(admin_id, text)
 
     return {"ok": True}
+async def demo_numbers_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        args = context.args
 
+        if not args:
+            await update.message.reply_text("Usage: /demo_numbers room1")
+            return
+
+        room_id = args[0]
+        import  worker
+        rooms = worker.load_runtime()
+
+        if not rooms or room_id not in rooms:
+            await update.message.reply_text("❌ Room not found")
+            return
+
+        room = rooms.get(room_id, {})
+        players = room.get("players", [])
+
+        if not players:
+            await update.message.reply_text(f"⚠️ No players in {room_id}")
+            return
+
+        demo_players = []
+
+        for p in players:
+            # Adjust this key depending on your structure
+            user_id = (
+                p.get("user_id") or
+                p.get("telegramId") or
+                p.get("id")
+            )
+
+            if not user_id:
+                continue
+
+            try:
+                uid = int(user_id)
+                if 1 <= uid <= 100:
+                    demo_players.append(p)
+            except:
+                continue
+
+        msg = f"🎮 Room: {room_id}\n"
+        msg += f"👥 Total Players: {len(players)}\n"
+        msg += f"🤖 Demo Players (ID 1–100): {len(demo_players)}\n\n"
+
+        # Show demo players (limit to avoid Telegram flood)
+        for i, p in enumerate(demo_players[:20], 1):
+            name = (
+                p.get("username") or
+                p.get("name") or
+                f"User_{p.get('telegramId', 'Unknown')}"
+            )
+            msg += f"{i}. {name}\n"
+
+        await update.message.reply_text(msg)
+
+    except Exception as e:
+        await update.message.reply_text(f"Error: {str(e)}")
+        
 import uvicorn
 import threading
 
@@ -912,10 +1288,15 @@ def main():
     app.add_handler(CommandHandler("stats", stats_command))
     app.add_handler(deposit_conv)
     app.add_handler(withdraw_conv)
+    app.add_handler(CommandHandler("demo_numbers", demo_numbers_cmd))
     app.add_handler(CommandHandler("deposit", start_deposit))
     app.add_handler(CommandHandler("withdraw", start_withdraw))
     app.add_handler(CommandHandler("playgame", show_rooms))
     app.add_handler(CommandHandler("changelanguage", change_language))
+    app.add_handler(CommandHandler("revenue", revenue_command))
+    app.add_handler(CommandHandler("check", check_command))
+    app.add_handler(CommandHandler("take", take_command))
+    app.add_handler(CommandHandler("players", players_cmd))
     app.add_handler(CallbackQueryHandler(room_selected, pattern="^room_"))
     print("Bot Running...")
 

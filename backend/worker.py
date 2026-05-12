@@ -23,7 +23,7 @@ with open("cards.json", "r") as f:
 def check_demo_balances():
     print("Running demo balance check...")
 
-    for user_id in range(1, 31):  # 1 to 30
+    for user_id in range(1, 101):  # 1 to 30
         ref = db.reference(f"/users/{user_id}/balance")
         balance = ref.get()
 
@@ -391,7 +391,17 @@ def process_payout(room_id):
             "room_id": room_id,
             "timestamp": time.time()
         })
+    revenue_amount = pot / 4
 
+    revenue_ref = db.reference("/revenue").push()
+
+    revenue_ref.set({
+        "amount": revenue_amount,
+        "datetime": int(time.time() * 1000),
+        "drawned": False,
+        "gameId": str(uuid.uuid4()),
+        "roomId": room_id
+    })
     runtime["payout_done"] = True
 
     print("Payout complete")
