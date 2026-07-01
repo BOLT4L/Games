@@ -76,7 +76,7 @@ firebase_key_path = os.getenv("FIREBASE_KEY_PATH", "firebase_key.json")
 cred = credentials.Certificate(firebase_key_path)
 
 firebase_admin.initialize_app(cred, {
-    "databaseURL": "https://friday-b92f9-default-rtdb.firebaseio.com/"
+    "databaseURL": "https://ndxb-e26d2-default-rtdb.firebaseio.com/"
 })
 
 ADMIN_IDS = [
