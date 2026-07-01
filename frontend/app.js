@@ -141,9 +141,17 @@ function renderSelectedCardPreview() {
 
   const numbers = allCards[selectedCard];
 
+  const countdown = currentState ? currentState.countdown : 0;
+
   let html = `
     <div class="card-preview">
-      <h3>Card #${selectedCard.replace("card","")}</h3>
+      <div class="preview-header">
+        <h3>Card #${selectedCard.replace("card","")}</h3>
+        <div class="countdown-pill">
+          <span class="countdown-icon">⏱</span>
+          <span id="previewCountdown">${countdown}</span>s
+        </div>
+      </div>
       <div class="bingo-header">
         <div>B</div><div>I</div><div>N</div><div>G</div><div>O</div>
       </div>
@@ -677,6 +685,9 @@ function resetPlayerState() {
 function updateCountdown(state) {
   const el = document.getElementById("countdownValue");
   if (el) el.innerText = state.countdown;
+  // also keep the preview modal countdown in sync
+  const previewEl = document.getElementById("previewCountdown");
+  if (previewEl) previewEl.innerText = state.countdown;
 }
 
 // ── VOICE: announce drawn number ──
