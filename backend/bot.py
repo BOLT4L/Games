@@ -35,6 +35,13 @@ TELEBIRR_NUMBER = os.getenv("TELEBIRR_NUMBER")
 WEB_APP_URL = os.getenv("WEB_APP_URL")
 AUTOBET_API = os.getenv("AUTOBET_API")
 
+# Public group link shown in menu and on registration
+PUBLIC_GROUP_LINK = os.getenv("PUBLIC_GROUP_LINK", "https://t.me/uapubll")
+
+# Private admin group chat id (int). Requests go here instead of individual DMs.
+_pgid = os.getenv("PRIVATE_GROUP_ID", "")
+PRIVATE_GROUP_ID = int(_pgid) if _pgid.lstrip("-").isdigit() else None
+
 # ---------------- TEXT ----------------
 TEXT = {
     "en": {
@@ -44,7 +51,7 @@ TEXT = {
         "withdraw": "Withdraw",
         "play": "Play Game",
         "amount": "Choose amount",
-        "send_receipt": "Send SMS receipt screenshot or text.",
+        "send_receipt": "📸 Please send a screenshot of your payment receipt.",
         "withdraw_amount": "Enter withdraw amount",
         "not_registered": "Please register first",
         "request_sent" : " Thanks your request has been sent .",
@@ -52,11 +59,12 @@ TEXT = {
         "change_lang": "Change Language",
         "menu_text": "Main Menu",
         "already_registered": "You are already registered.",
-        "registration_success": "Registration successful!",
+        "registration_success": "Registration successful! 🎉",
         "unknown_option": "Unknown option.",
         "no_rooms": "No rooms available right now.",
         "room_selected": "Room {room_id} selected. Tap below to enter:",
         "withdraw_account": "📲 Send your Telebirr number OR 🏦 CBE account number:",
+        "join_public": "📢 Join our public channel to stay updated:",
     },
 
     "am": {
@@ -66,7 +74,7 @@ TEXT = {
         "withdraw": "ገንዘብ አውጣ",
         "play": "ጨዋታ ጀምር",
         "amount": "መጠን ይምረጡ",
-        "send_receipt": "የSMS ደረሰኝ ይላኩ",
+        "send_receipt": "📸 የክፍያ ደረሰኝ ስክሪንሾት ይላኩ።",
         "withdraw_amount": "የሚወጣ መጠን አስገባ",
         "not_registered": "እባክዎ መመዝገብ ያስፈልጋል",
         "request_sent" : "እናመሰግናለን ጥያቄዎ በተሳካ ሁኔታ ተልኳል ::",
@@ -74,11 +82,12 @@ TEXT = {
         "change_lang": "ቋንቋ ቀይር",
         "menu_text": "ዋና ማውጫ",
         "already_registered": "ከዚህ በፊት ተመዝግበዋል።",
-        "registration_success": "ምዝገባ ተሳክቷል!",
+        "registration_success": "ምዝገባ ተሳክቷል! 🎉",
         "unknown_option": "ያልታወቀ ምርጫ",
         "no_rooms": "አሁን ምንም ክፍሎች የሉም",
         "room_selected": "ክፍል {room_id} ተመርጧል። ከታች ይግቡ:",
         "withdraw_account": "📲 የቴሌብር ቁጥርዎን ወይም 🏦 የCBE አካውንት ቁጥርዎን ያስገቡ:",
+        "join_public": "📢 የቻናላችንን ይቀላቀሉ:",
     },
 
     "om": {
@@ -88,7 +97,7 @@ TEXT = {
         "withdraw": "Maallaqa baasuu",
         "play": "Tapha jalqabi",
         "amount": "Hanga filadhaa",
-        "send_receipt": "SMS receipt ergaa",
+        "send_receipt": "📸 Screenshot kaffaltii ergaa.",
         "withdraw_amount": "Hanga baasuu galchi",
         "not_registered": "Mee jalqaba galmaa'i",
         "request_sent": "Galatoomaa, gaaffiin keessan milkaa'inaan ergameera",
@@ -96,11 +105,12 @@ TEXT = {
         "change_lang": "Afaan Jijjiiri",
         "menu_text": "Menu Guddaa",
         "already_registered": "Dursee galmaa'aniittu.",
-        "registration_success": "Galmeen milkaa'eera!",
+        "registration_success": "Galmeen milkaa'eera! 🎉",
         "unknown_option": "Filannoo hin beekamne",
         "no_rooms": "Amma kutaan hin jiru",
         "room_selected": "Kutaa {room_id} filatameera. Gadiin seeni:",
         "withdraw_account": "📲 Lakkoofsa Telebirr ykn 🏦 lakkoofsa herrega CBE galchi:",
+        "join_public": "📢 Chaanala keenya makamiinaa:",
     }
 }
 ROOM_NAMES = {
@@ -128,9 +138,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ❌ USER DOES NOT EXIST → ask contact
     keyboard = [[KeyboardButton("📱 Share Contact", request_contact=True)]]
 
+    join_btn = [[InlineKeyboardButton("📢 Join our Channel", url=PUBLIC_GROUP_LINK)]]
+
     await update.message.reply_text(
         TEXT["am"]["welcome"],
         reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=True)
+    )
+    await update.message.reply_text(
+        "📢 Join our public channel while you register:",
+        reply_markup=InlineKeyboardMarkup(join_btn)
     )
 # ---------------- LANGUAGE ----------------
 
@@ -168,7 +184,11 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     create_user(user, contact.phone_number, lang)
 
-    await update.message.reply_text(TEXT[lang]["registration_success"])
+    join_btn = [[InlineKeyboardButton("📢 Join our Channel", url=PUBLIC_GROUP_LINK)]]
+    await update.message.reply_text(
+        TEXT[lang]["registration_success"],
+        reply_markup=InlineKeyboardMarkup(join_btn)
+    )
 
     await main_menu(update, context)
 
@@ -602,9 +622,18 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(report)
 
 
-async def demo_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Demo cancelled.")
-    return await end_with_menu(update, context)
+async def getid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Send the current chat's ID — use this inside the private group to get the group ID."""
+    chat = update.effective_chat
+    await update.message.reply_text(
+        f"🆔 Chat ID: `{chat.id}`\n"
+        f"📛 Name: {chat.title or chat.full_name or 'N/A'}\n"
+        f"🔖 Type: {chat.type}",
+        parse_mode="Markdown"
+    )
+
+
+
 # ---------------- MAIN MENU ----------------
 
 async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, lang=None):
@@ -614,16 +643,24 @@ async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, lang=Non
     chat_id = update.effective_chat.id
 
     text = f"""
-        📋 {TEXT[lang].get("menu_text", "Menu")}
+📋 {TEXT[lang].get("menu_text", "Menu")}
 
-        🎮 {TEXT[lang]["play"]} → /playgame   
-        💰 {TEXT[lang]["deposit"]} → /deposit  
-        💸 {TEXT[lang]["withdraw"]} → /withdraw    
-        🌐 {TEXT[lang]["change_lang"]} → /changelanguage
-        🌐 Telegram Channel → https://t.me/fridaybingos
+🎮 {TEXT[lang]["play"]} → /playgame   
+💰 {TEXT[lang]["deposit"]} → /deposit  
+💸 {TEXT[lang]["withdraw"]} → /withdraw    
+🌐 {TEXT[lang]["change_lang"]} → /changelanguage
             """
 
-    await context.bot.send_message(chat_id, text)
+    keyboard = [[InlineKeyboardButton(
+        f"📢 {TEXT[lang].get('join_public', 'Join our Channel')}",
+        url=PUBLIC_GROUP_LINK
+    )]]
+
+    await context.bot.send_message(
+        chat_id,
+        text,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 #---------------------SEND message ------------
 
 async def sendmessage_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -697,14 +734,24 @@ async def apply_admin_resolution_ui(context: ContextTypes.DEFAULT_TYPE, data: di
     else:
         suffix = "\n\n────────\n✔️ Closed."
     new_text = f"{body}{suffix}"
+
     for aid, msg in (data.get("messages") or {}).items():
         try:
-            await context.bot.edit_message_text(
-                chat_id=msg["chat_id"],
-                message_id=msg["message_id"],
-                text=new_text,
-                reply_markup=None,
-            )
+            if msg.get("is_photo"):
+                # Photo message — edit the caption
+                await context.bot.edit_message_caption(
+                    chat_id=msg["chat_id"],
+                    message_id=msg["message_id"],
+                    caption=new_text,
+                    reply_markup=None,
+                )
+            else:
+                await context.bot.edit_message_text(
+                    chat_id=msg["chat_id"],
+                    message_id=msg["message_id"],
+                    text=new_text,
+                    reply_markup=None,
+                )
         except Exception as e:
             print(f"admin message edit failed ({aid}): {e}")
 
@@ -724,15 +771,22 @@ async def broadcast_request_closed_to_admins(
     except Exception:
         pass
     text = (
-        f"ℹ️ {kind} request closed (already {label}).\n"
-        f"User: {uid} · Amount: {amt}\n"
-        f"Handled by: {handler}"
+        f"ℹ️ {kind} request closed ({label}).\n"
+        f"👤 User: {uid} · 💵 Amount: {amt}\n"
+        f"✍️ Handled by: {handler}"
     )
-    for admin_id in ADMIN_IDS:
+    # Notify private group if configured, otherwise notify individual admins
+    if PRIVATE_GROUP_ID:
         try:
-            await context.bot.send_message(admin_id, text)
+            await context.bot.send_message(PRIVATE_GROUP_ID, text)
         except Exception as e:
-            print(f"broadcast to admin {admin_id}: {e}")
+            print(f"broadcast to private group failed: {e}")
+    else:
+        for admin_id in ADMIN_IDS:
+            try:
+                await context.bot.send_message(admin_id, text)
+            except Exception as e:
+                print(f"broadcast to admin {admin_id}: {e}")
 
 from datetime import datetime, timezone
 
@@ -807,42 +861,71 @@ async def deposit_amount_chosen(update: Update, context: ContextTypes.DEFAULT_TY
     return WAITING_DEPOSIT_RECEIPT
 
 async def deposit_receipt_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Final step: Notify admin"""
+    """Final step: forward screenshot to admin group with approve/deny buttons."""
     uid = str(update.effective_user.id)
     amount = context.user_data.get("temp_deposit_amount")
-    receipt = update.message.text or "Image/File sent"
     lang = context.user_data.get("lang", "en")
-    is_valid, result = check_receipt_stub(receipt)
-    url = result
-    if not is_valid:
-        return await cancel_process(update, context, result)
 
-    body_text = f"Deposit request\nUser:{uid}\nAmount:{amount}\nReceipt:{receipt}\nURL: {url}"
+    # Must be a photo
+    if not update.message.photo:
+        await update.message.reply_text("❌ Please send a photo screenshot, not text.")
+        return WAITING_DEPOSIT_RECEIPT
+
+    # Grab the highest-resolution version of the photo
+    photo_file_id = update.message.photo[-1].file_id
+
+    caption = (
+        f"💰 Deposit Request\n"
+        f"👤 User: {uid}\n"
+        f"💵 Amount: {amount} ETB"
+    )
+
     request_id = util.new_admin_request_id()
     keyboard = [[
-        InlineKeyboardButton(
-            "Approve",
-            callback_data=f"approve_dep_{request_id}",
-        ),
-        InlineKeyboardButton(
-            "Deny",
-            callback_data=f"deny_dep_{request_id}",
-        ),
+        InlineKeyboardButton("✅ Approve", callback_data=f"approve_dep_{request_id}"),
+        InlineKeyboardButton("❌ Deny",    callback_data=f"deny_dep_{request_id}"),
     ]]
 
     admin_messages = {}
-    for admin in ADMIN_IDS:
-        sent = await context.bot.send_message(
-            admin,
-            body_text,
-            reply_markup=InlineKeyboardMarkup(keyboard),
-        )
-        admin_messages[str(admin)] = {
-            "chat_id": sent.chat_id,
-            "message_id": sent.message_id,
-        }
 
-    create_pending_admin_request("dep", uid, amount, body_text, admin_messages, request_id=request_id,url = url)
+    # Send photo to private group or individual admins
+    if PRIVATE_GROUP_ID:
+        try:
+            sent = await context.bot.send_photo(
+                PRIVATE_GROUP_ID,
+                photo=photo_file_id,
+                caption=caption,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+            admin_messages["group"] = {
+                "chat_id": sent.chat_id,
+                "message_id": sent.message_id,
+                "is_photo": True,
+            }
+        except Exception as e:
+            print(f"Failed to send photo to private group: {e}")
+    else:
+        for admin in ADMIN_IDS:
+            try:
+                sent = await context.bot.send_photo(
+                    admin,
+                    photo=photo_file_id,
+                    caption=caption,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                )
+                admin_messages[str(admin)] = {
+                    "chat_id": sent.chat_id,
+                    "message_id": sent.message_id,
+                    "is_photo": True,
+                }
+            except Exception as e:
+                print(f"Failed to send photo to admin {admin}: {e}")
+
+    # Store with url="" since there's no URL anymore
+    create_pending_admin_request(
+        "dep", uid, amount, caption, admin_messages,
+        request_id=request_id, url=""
+    )
 
     await update.message.reply_text(TEXT[lang]["request_sent"])
     return await end_with_menu(update, context)
@@ -889,31 +972,50 @@ async def withdraw_account_received(update: Update, context: ContextTypes.DEFAUL
 
     # ✅ include account in admin message
     body_text = (
-        f"Withdraw request\n"
-        f"User:{uid}\n"
-        f"Amount:{amount}\n"
-        f"Account:{account}"
+        f"💸 Withdraw Request\n"
+        f"👤 User: {uid}\n"
+        f"💵 Amount: {amount} ETB\n"
+        f"🏦 Account: {account}"
     )
 
     import util
     request_id = util.new_admin_request_id()
 
     keyboard = [[
-        InlineKeyboardButton("Approve", callback_data=f"approve_wd_{request_id}"),
-        InlineKeyboardButton("Deny", callback_data=f"deny_wd_{request_id}"),
+        InlineKeyboardButton("✅ Approve", callback_data=f"approve_wd_{request_id}"),
+        InlineKeyboardButton("❌ Deny", callback_data=f"deny_wd_{request_id}"),
     ]]
 
     admin_messages = {}
-    for admin in ADMIN_IDS:
-        sent = await context.bot.send_message(
-            admin,
-            body_text,
-            reply_markup=InlineKeyboardMarkup(keyboard),
-        )
-        admin_messages[str(admin)] = {
-            "chat_id": sent.chat_id,
-            "message_id": sent.message_id,
-        }
+
+    # Send to private group if configured, otherwise fall back to individual admins
+    if PRIVATE_GROUP_ID:
+        try:
+            sent = await context.bot.send_message(
+                PRIVATE_GROUP_ID,
+                body_text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+            admin_messages["group"] = {
+                "chat_id": sent.chat_id,
+                "message_id": sent.message_id,
+            }
+        except Exception as e:
+            print(f"Failed to send to private group: {e}")
+    else:
+        for admin in ADMIN_IDS:
+            try:
+                sent = await context.bot.send_message(
+                    admin,
+                    body_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                )
+                admin_messages[str(admin)] = {
+                    "chat_id": sent.chat_id,
+                    "message_id": sent.message_id,
+                }
+            except Exception as e:
+                print(f"Failed to send to admin {admin}: {e}")
 
     create_pending_admin_request(
         "wd", uid, amount, body_text, admin_messages, request_id=request_id
@@ -975,24 +1077,6 @@ async def admin_actions(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if claimed:
             if action == "approve":
                 if tx_type == "dep":
-
-    # 🔒 Recheck receipt before final approval
-                    ok, msg = check_receipt_stub(url)
-
-                    if not ok:
-                        await context.bot.send_message(
-                            query.from_user.id,
-                            f"❌ Cannot approve deposit:\n{msg}"
-                        )
-
-                        await context.bot.send_message(
-                            uid,
-                            "❌ Deposit rejected because receipt already used."
-                        )
-
-                        await query.answer("Duplicate receipt", show_alert=True)
-                        return
-
                     update_balance_dep(uid, amount, url)
                     await context.bot.send_message(
                         uid, f"✅ Deposit approved +{amount}"
@@ -1221,6 +1305,7 @@ def main():
     app = Application.builder().token(BOT_TOKEN).build()
     telegram_app = app
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("getid", getid_command))
     app.add_handler(CommandHandler("changelanguage", change_language))
     app.add_handler(MessageHandler(filters.CONTACT, contact_handler))
     
@@ -1236,7 +1321,7 @@ def main():
                 CallbackQueryHandler(deposit_amount_chosen, pattern="^dep_")
             ],
             WAITING_DEPOSIT_RECEIPT: [
-                MessageHandler(filters.TEXT, deposit_receipt_received)
+                MessageHandler(filters.PHOTO, deposit_receipt_received)
             ],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
@@ -1261,7 +1346,7 @@ def main():
             DEMO_QUANTITY: [MessageHandler(filters.TEXT & ~filters.COMMAND, demo_quantity)],
             DEMO_GAMES: [MessageHandler(filters.TEXT & ~filters.COMMAND, demo_games)],
         },
-        fallbacks=[CommandHandler("cancel", demo_cancel)],
+        fallbacks=[CommandHandler("cancel", send_cancel)],
     )
 
     app.add_handler(demo_conv)

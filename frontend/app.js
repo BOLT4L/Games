@@ -1,4 +1,4 @@
-const API_BASE = "https://cleaner-logical-entitled-handling.trycloudflare.com";
+const API_BASE = "https://YOUR_CLOUDFLARE_TUNNEL_URL";
 const urlParams = new URLSearchParams(window.location.search);
 
 const ROOM_ID = urlParams.get("room_id") ;
@@ -1333,7 +1333,7 @@ let lastRoomState = null;
 let socket;
 
 function initSocket() {
-  socket = io("https://cleaner-logical-entitled-handling.trycloudflare.com", {
+  socket = io("https://YOUR_CLOUDFLARE_TUNNEL_URL", {
     transports: ["websocket"],
   });
 
