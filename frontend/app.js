@@ -1,4 +1,4 @@
-const API_BASE = "https://discrimination-viewing-left-due.trycloudflare.com";
+const API_BASE = "https://51.20.43.208.sslip.io/";
 const urlParams = new URLSearchParams(window.location.search);
 
 const ROOM_ID = urlParams.get("room_id") ;
