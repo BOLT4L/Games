@@ -491,3 +491,318 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
   justify-content: center;
   margin-top: 12px;
 }
+
+/* ── AUTO CONTROLS ── */
+.auto-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.auto-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  min-width: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+  font-family: 'Inter', sans-serif;
+}
+
+.auto-btn.off {
+  background: var(--bg-surface);
+  border: 1px solid rgba(79,142,247,0.25);
+  color: var(--text-muted);
+}
+
+.auto-btn.on {
+  background: linear-gradient(135deg, var(--accent-green), #00b248);
+  color: #000;
+  box-shadow: var(--glow-green);
+}
+
+.auto-btn:hover { transform: translateY(-2px) scale(1.04); }
+.auto-btn:active { transform: scale(0.96); }
+
+/* ── BET BUTTONS ── */
+#placeBetBtn {
+  padding: 11px 28px;
+  background: linear-gradient(135deg, var(--accent-green), #00b248);
+  color: #000;
+  border: none;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: var(--glow-green);
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+#placeBetBtn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+
+#cancelBetBtn {
+  padding: 11px 28px;
+  background: linear-gradient(135deg, var(--accent-red), #c62828);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+#cancelBetBtn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+
+/* ── BINGO BUTTON ── */
+#callBingoBtn {
+  padding: 13px 30px;
+  font-weight: 800;
+  font-size: 18px;
+  font-family: 'Orbitron', sans-serif;
+  background: linear-gradient(135deg, #ffd700, #ff8c00);
+  color: #000;
+  border: none;
+  border-radius: 24px;
+  cursor: pointer;
+  box-shadow: 0 0 18px rgba(255,215,0,0.55), 0 4px 12px rgba(0,0,0,0.4);
+  letter-spacing: 3px;
+  animation: pulseBingo 2s infinite;
+}
+
+@keyframes pulseBingo {
+  0%, 100% { box-shadow: 0 0 18px rgba(255,215,0,0.55), 0 4px 12px rgba(0,0,0,0.4); }
+  50%       { box-shadow: 0 0 32px rgba(255,215,0,0.85), 0 6px 20px rgba(0,0,0,0.5); }
+}
+
+/* ── COUNTDOWN ── */
+#countdown {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 14px;
+  color: var(--accent-gold);
+  letter-spacing: 1px;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-dark); }
+::-webkit-scrollbar-thumb { background: var(--accent-blue); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-purple); }
+
+/* ══════════════════════════════════════════
+   MODAL OVERLAY — card preview & result popups
+   ══════════════════════════════════════════ */
+
+/* Card preview modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: fadeInBg 0.2s ease;
+}
+
+@keyframes fadeInBg {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal-box {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px 20px 20px;
+  box-shadow: 0 16px 60px rgba(0,0,0,0.7), var(--glow-blue);
+  animation: popIn 0.22s ease-out;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+.modal-close:hover { color: var(--accent-red); background: rgba(255,77,109,0.1); }
+
+/* ── POPUP (winner/loser modal + toast) ── */
+.popup {
+  display: none;
+  z-index: 3000;
+}
+
+/* Toast notification */
+.popup.popup-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--accent-blue);
+  padding: 16px 28px;
+  border-radius: var(--radius);
+  display: block;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6), var(--glow-blue);
+  text-align: center;
+  font-weight: 600;
+  font-size: 15px;
+  max-width: 88vw;
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Full modal popup (winner/loser) */
+.popup.popup-modal {
+  position: fixed;
+  inset: 0;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.popup-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: -1;
+}
+
+.popup-modal-box {
+  position: relative;
+  border-radius: var(--radius);
+  padding: 28px 24px;
+  max-width: 92vw;
+  max-height: 88vh;
+  overflow-y: auto;
+  text-align: center;
+  animation: popIn 0.3s ease-out;
+  box-shadow: 0 20px 70px rgba(0,0,0,0.75);
+}
+
+.popup-close-btn {
+  margin-top: 18px;
+  padding: 10px 32px;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 20px;
+  background: rgba(255,255,255,0.1);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+.popup-close-btn:hover { background: rgba(255,255,255,0.25); transform: translateY(-1px); }
+
+/* Win popup */
+.win-popup {
+  background: linear-gradient(135deg, #064e21, #0f5c2a, #17703a);
+  border: 1px solid var(--accent-green);
+  color: white;
+  box-shadow: 0 0 40px rgba(0,230,118,0.3), 0 20px 60px rgba(0,0,0,0.7);
+}
+
+.win-popup h2 {
+  font-size: 28px;
+  color: var(--accent-green);
+  text-shadow: var(--glow-green);
+  margin: 8px 0;
+}
+
+.win-fireworks {
+  font-size: 48px;
+  animation: bounce 0.6s ease infinite alternate;
+}
+
+@keyframes bounce {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-8px); }
+}
+
+/* Lose popup */
+.lose-popup {
+  background: linear-gradient(135deg, #0c1a4a, #102060, #142878);
+  border: 1px solid rgba(79,142,247,0.5);
+  color: white;
+}
+
+.lose-popup h2 {
+  font-size: 22px;
+  color: var(--accent-blue);
+  margin-bottom: 6px;
+}
+
+.lose-popup p {
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+
+.winner-cards-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.winner-card-item {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(79,142,247,0.3);
+  padding: 12px;
+  border-radius: 10px;
+  min-width: 140px;
+}
+
+.winner-name {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--accent-blue);
+  margin-bottom: 4px;
+}
+
+.winner-cardnum {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translate(-50%, -55%) scale(0.92); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes popIn {
+  0%   { transform: scale(0.82); opacity: 0; }
+  70%  { transform: scale(1.04); }
+  100% { transform: scale(1);    opacity: 1; }
+}

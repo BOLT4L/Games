@@ -132,12 +132,13 @@ function renderCardSelection(state) {
   app.innerHTML = html;
 }
 
-// ── RENDER: Selected Card Preview ──
+// ── RENDER: Selected Card Preview (modal overlay) ──
 function renderSelectedCardPreview() {
   if (currentState && currentState.state === "playing") return;
+  const overlay  = document.getElementById("cardPreviewOverlay");
   const container = document.getElementById("selectedCardPreview");
-  if (!selectedCard) { container.innerHTML = ""; return; }
-  container.style.display = "block";
+  if (!selectedCard) { closeCardPreview(); return; }
+
   const numbers = allCards[selectedCard];
 
   let html = `
@@ -167,7 +168,20 @@ function renderSelectedCardPreview() {
   html += `</div></div>`;
 
   container.innerHTML = html;
+  overlay.style.display = "flex";
   attachPreviewEvents();
+}
+
+function closeCardPreview() {
+  const overlay = document.getElementById("cardPreviewOverlay");
+  if (overlay) overlay.style.display = "none";
+}
+
+// Close card modal when clicking the dark backdrop (outside the modal box)
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById("cardPreviewOverlay")) {
+    closeCardPreview();
+  }
 }
 
 let arenaInitialized = false;
@@ -430,8 +444,9 @@ async function fetchUser() {
 }
 
 function clearPreview() {
+  closeCardPreview();
   const container = document.getElementById("selectedCardPreview");
-  if (container) { container.innerHTML = ""; container.style.display = "none"; }
+  if (container) container.innerHTML = "";
 }
 
 function attachPreviewEvents() {
@@ -454,8 +469,15 @@ function getBingoLetter(num) {
 
 function showPopup(msg) {
   const popup = document.getElementById("popup");
-  popup.innerText = msg; popup.style.display = "block";
-  setTimeout(() => { popup.style.display = "none"; }, 3000);
+  // simple toast — don't overwrite a modal popup
+  if (popup.classList.contains("popup-modal") && popup.style.display === "flex") return;
+  popup.className = "popup popup-toast";
+  popup.innerText = msg;
+  popup.style.display = "block";
+  setTimeout(() => {
+    popup.style.display = "none";
+    popup.className = "popup";
+  }, 3000);
 }
 
 function showPopupHTML(html) {
@@ -466,21 +488,30 @@ function showPopupHTML(html) {
 
 function showWinnerPopup(winnerCard) {
   const popup = document.getElementById("popup");
+  popup.className = "popup popup-modal";
   popup.innerHTML = `
-    <div class="win-popup">
+    <div class="popup-backdrop" onclick="dismissPopup()"></div>
+    <div class="popup-modal-box win-popup">
       <div class="win-fireworks">🎉</div>
       <h2>${t("you_won")}</h2>
       <p>${t("congratulations")}${winnerCard.card_id.replace("card","")}</p>
       <div id="winnerCardContainer"></div>
+      <button class="popup-close-btn" onclick="dismissPopup()">Close</button>
     </div>`;
   renderHighlightedCard(winnerCard.card_id, winnerCard.pattern, "winnerCardContainer", true);
-  popup.style.display = "block";
-  setTimeout(() => { popup.style.display = "none"; }, 4000);
+  popup.style.display = "flex";
+  setTimeout(() => dismissPopup(), 7000);
 }
 
 function showLoserPopup(winnerCards) {
   const popup = document.getElementById("popup");
-  let html = `<div class="lose-popup"><h2>${t("game_over")}</h2><p>${t("winner_cards")}</p><div class="winner-cards-wrap">`;
+  popup.className = "popup popup-modal";
+  let html = `
+    <div class="popup-backdrop" onclick="dismissPopup()"></div>
+    <div class="popup-modal-box lose-popup">
+      <h2>${t("game_over")}</h2>
+      <p>${t("winner_cards")}</p>
+      <div class="winner-cards-wrap">`;
   winnerCards.forEach((w, index) => {
     html += `
       <div class="winner-card-item">
@@ -489,12 +520,19 @@ function showLoserPopup(winnerCards) {
         <div id="loserCard_${index}"></div>
       </div>`;
   });
-  html += `</div></div>`;
-  popup.innerHTML = html; popup.style.display = "block";
+  html += `</div><button class="popup-close-btn" onclick="dismissPopup()">Close</button></div>`;
+  popup.innerHTML = html;
+  popup.style.display = "flex";
   setTimeout(() => {
     winnerCards.forEach((w, index) => renderHighlightedCard(w.card_id, w.pattern, `loserCard_${index}`, false));
   }, 50);
-  setTimeout(() => { popup.style.display = "none"; }, Math.max(4000, winnerCards.length * 2000));
+  setTimeout(() => dismissPopup(), Math.max(8000, winnerCards.length * 2500));
+}
+
+function dismissPopup() {
+  const popup = document.getElementById("popup");
+  popup.style.display = "none";
+  popup.className = "popup";
 }
 
 async function renderHighlightedCard(cardId, pattern, containerId, isWinner = false) {
@@ -641,11 +679,24 @@ function updateCountdown(state) {
   if (el) el.innerText = state.countdown;
 }
 
+// ── VOICE: announce drawn number ──
+function announceNumber(num) {
+  if (!window.speechSynthesis) return;
+  const letter = getBingoLetter(num);
+  const utterance = new SpeechSynthesisUtterance(`${letter} ${num}`);
+  utterance.lang    = "en-US";
+  utterance.rate    = 0.9;
+  utterance.pitch   = 1.1;
+  utterance.volume  = 1;
+  window.speechSynthesis.cancel(); // stop any current speech
+  window.speechSynthesis.speak(utterance);
+}
+
 function updateCalledNumbers(state) {
   const newNumbers = state.drawn_numbers;
   const lastNumber = newNumbers[newNumbers.length - 1];
   if (lastNumber && lastNumber !== calledNumbers[calledNumbers.length - 1]) {
-    const letter = getBingoLetter(lastNumber);
+    announceNumber(lastNumber);
   }
   calledNumbers = newNumbers;
   updateCalledBoard();

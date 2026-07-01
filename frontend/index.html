@@ -24,10 +24,19 @@
     <div>
       <div id="countdown"></div>
     </div>
-    <div id="selectedCardPreview"></div>
   </div>
 
   <div id="app"></div>
+
+  <!-- Card preview modal overlay -->
+  <div id="cardPreviewOverlay" class="modal-overlay" style="display:none" onclick="handleOverlayClick(event)">
+    <div class="modal-box" id="cardPreviewModal">
+      <button class="modal-close" onclick="closeCardPreview()">✕</button>
+      <div id="selectedCardPreview"></div>
+    </div>
+  </div>
+
+  <!-- Winner / Loser / notification popup -->
   <div id="popup" class="popup"></div>
 
 </div>
