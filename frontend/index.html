@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Bingo Room</title>
+  <title>NDxB Bingo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Link external CSS -->
+  <meta charset="UTF-8">
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
@@ -11,20 +11,17 @@
 
 <div id="scale-wrapper">
 
-  <!-- Language buttons moved here -->
+  <!-- Top bar: game info -->
   <div class="top-fixed">
-  <div id="gameInfoBar" class="bottom-bar"></div>
-
-  <div class="lang-buttons">
-    <button onclick="setLang('am')">AM</button>
-    <button onclick="setLang('en')">EN</button>
-    <button onclick="setLang('or')">OR</button>
+    <div class="brand-bar">
+      <span class="brand-logo">ND<span class="brand-x">x</span>B</span>
+      <span class="brand-tagline">Bingo</span>
+    </div>
+    <div id="gameInfoBar" class="bottom-bar"></div>
   </div>
-</div>
 
   <div class="top-layout">
     <div>
-      <h1>Bingo Game</h1>
       <div id="countdown"></div>
     </div>
     <div id="selectedCardPreview"></div>
@@ -34,7 +31,7 @@
   <div id="popup" class="popup"></div>
 
 </div>
- <div id="apps"></div>
+<div id="apps"></div>
 
 <script src="app.js"></script>
 </body>
