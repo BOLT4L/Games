@@ -1333,7 +1333,7 @@ let lastRoomState = null;
 let socket;
 
 function initSocket() {
-  socket = io("https://soul-remedy-instructor-sagem.trycloudflare.com   ", {
+  socket = io("https://51.20.43.208.sslip.io/", {
     transports: ["websocket"],
   });
 
