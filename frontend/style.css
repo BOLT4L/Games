@@ -134,7 +134,7 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 108px 20px 15px;
+  padding: 108px 20px 8px;
   gap: 15px;
 }
 
@@ -344,15 +344,15 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 }
 
 .bingo-cell {
-  width: 44px;
-  height: 44px;
+  width: 50px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
   background: var(--bg-surface);
   border: 1px solid rgba(79,142,247,0.18);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition);
@@ -393,10 +393,23 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 
 .arena {
   display: flex;
-  gap: 20px;
+  gap: 12px;
   justify-content: center;
-  margin-top: 10px;
-  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-top: 6px;
+  flex-wrap: nowrap;
+  width: 100%;
+  padding: 0 8px;
+}
+
+/* Called board takes more space, player card fills remaining */
+#calledBoard {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+#playerCard {
+  flex: 0 0 auto;
 }
 
 /* ── CALLED BOARD ── */
@@ -428,20 +441,20 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 
-.recent-ball.small  { width: 28px; height: 28px; font-size: 12px; opacity: 0.65; }
-.recent-ball.medium { width: 36px; height: 36px; font-size: 14px; opacity: 0.85; }
-.recent-ball.large  { width: 52px; height: 52px; font-size: 18px; box-shadow: 0 0 18px rgba(255,255,255,0.2); }
+.recent-ball.small  { width: 36px; height: 36px; font-size: 14px; opacity: 0.65; }
+.recent-ball.medium { width: 48px; height: 48px; font-size: 17px; opacity: 0.85; }
+.recent-ball.large  { width: 68px; height: 68px; font-size: 24px; box-shadow: 0 0 22px rgba(255,255,255,0.25); }
 
 .called-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
+  gap: 5px;
 }
 
 .called-number {
-  width: 30px;
-  height: 30px;
-  font-size: 11px;
+  width: 36px;
+  height: 36px;
+  font-size: 12px;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -814,4 +827,110 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
   0%   { transform: scale(0.82); opacity: 0; }
   70%  { transform: scale(1.04); }
   100% { transform: scale(1);    opacity: 1; }
+}
+
+/* ── ROOM PICKER ── */
+.room-picker {
+  padding: 16px;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.room-picker-title {
+  text-align: center;
+  font-size: 18px;
+  color: var(--accent-blue);
+  margin-bottom: 20px;
+  letter-spacing: 2px;
+}
+
+.room-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.room-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.3);
+}
+
+.room-card:hover {
+  border-color: var(--accent-blue);
+  background: rgba(79,142,247,0.08);
+  transform: translateY(-2px);
+  box-shadow: var(--glow-blue), 0 8px 28px rgba(0,0,0,0.4);
+}
+
+.room-card--disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.room-card-name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent-purple);
+  letter-spacing: 1px;
+  flex: 1 1 auto;
+}
+
+.room-card-bet {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent-gold);
+}
+
+.room-card-players {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.room-card-state {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid currentColor;
+}
+
+.room-picker-loading,
+.room-picker-error {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 15px;
+  padding: 40px 20px;
+}
+
+/* ── FULL-SCREEN ARENA (playing state) ── */
+#app:has(.arena) {
+  padding: 0;
+}
+
+.arena {
+  min-height: calc(100vh - 120px);
+  align-items: stretch;
+}
+
+.called-board,
+.player-card {
+  flex: 1 1 0;
+}
+
+.bingo-grid {
+  gap: 6px;
 }

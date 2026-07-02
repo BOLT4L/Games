@@ -1,6 +1,6 @@
 const API_BASE = "https://51.20.43.208.sslip.io/";
 const urlParams = new URLSearchParams(window.location.search);
-const ROOM_ID = urlParams.get("room_id");
+let ROOM_ID = urlParams.get("room_id");
 const USER_ID = urlParams.get("user_id");
 
 let allCards = {};
@@ -205,6 +205,13 @@ function renderGameArena(state) {
         <div id="playerCard"></div>
       </div>
     `;
+    // Expand scale-wrapper to full screen during play
+    const wrapper = document.getElementById("scale-wrapper");
+    if (wrapper) {
+      wrapper.style.transform = "none";
+      wrapper.style.width = "100%";
+      wrapper.style.height = "auto";
+    }
     renderPlayerCard();
     updateCalledBoard();
     attachArenaEvents();
@@ -415,9 +422,9 @@ async function renderGameInfo(state) {
 
   container.innerHTML = `
     <div class="info-box">👥 ${t("players")}: <strong>${playersCount}</strong></div>
-    <div class="info-box">💰 ${t("pot")}: <strong>${pot}</strong></div>
-    <div class="info-box">🎯 ${t("bet")}: <strong>${bet}</strong></div>
-    <div class="info-box">💳 ${t("balance")}: <strong>${userBalance}</strong></div>
+    <div class="info-box">💰 ${t("pot")}: <strong>${pot} AED</strong></div>
+    <div class="info-box">🎯 ${t("bet")}: <strong>${bet} AED</strong></div>
+    <div class="info-box">💳 ${t("balance")}: <strong>${userBalance} AED</strong></div>
     <div class="info-box state-badge state-${roomState}">${roomState}</div>
   `;
 }
@@ -680,6 +687,13 @@ function handleStateUpdate(state) {
 function resetPlayerState() {
   markedCells.clear(); selectedCard = null; myPickedCard = null;
   clearPreview(); arenaInitialized = false; hasCalledBingo = false; resultShown = false;
+  // Restore scale wrapper for card selection screen
+  const wrapper = document.getElementById("scale-wrapper");
+  if (wrapper) {
+    wrapper.style.transform = "scale(0.5)";
+    wrapper.style.width = "200%";
+    wrapper.style.height = "200%";
+  }
 }
 
 function updateCountdown(state) {
@@ -770,6 +784,69 @@ function initSocket() {
 }
 
 async function startApp() {
+  if (!ROOM_ID) {
+    await renderRoomPicker();
+    return;
+  }
+  await loadCards();
+  loadAutoState();
+  initSocket();
+}
+
+// ── ROOM PICKER ──
+async function renderRoomPicker() {
+  const app = document.getElementById("app");
+  app.innerHTML = `<div class="room-picker-loading">Loading rooms...</div>`;
+
+  let rooms = [];
+  try {
+    const res = await fetch(`${API_BASE}rooms`, { headers: { "ngrok-skip-browser-warning": "true" } });
+    rooms = await res.json();
+  } catch (e) {
+    app.innerHTML = `<div class="room-picker-error">⚠️ Could not load rooms. Please try again.</div>`;
+    return;
+  }
+
+  const stateLabel = { waiting: "Waiting", countdown: "Starting", playing: "Playing", ended: "Ended" };
+
+  let html = `
+    <div class="room-picker">
+      <h2 class="room-picker-title">🎮 Choose a Room</h2>
+      <div class="room-list">
+  `;
+
+  rooms.forEach(room => {
+    const state = room.state || "waiting";
+    const disabled = state === "playing" ? "room-card--disabled" : "";
+    html += `
+      <div class="room-card ${disabled}" onclick="enterRoom('${room.room_id}')">
+        <div class="room-card-name">${roomLabel(room.room_id)}</div>
+        <div class="room-card-bet">💰 ${room.bet_amount} AED</div>
+        <div class="room-card-players">👥 ${room.players} players</div>
+        <div class="room-card-state state-${state}">${stateLabel[state] || state}</div>
+      </div>
+    `;
+  });
+
+  html += `</div></div>`;
+  app.innerHTML = html;
+}
+
+function roomLabel(room_id) {
+  const names = { room00: "Room Free", room0: "Room One", room1: "Room Two", room2: "Room Three", room3: "Room Four" };
+  return names[room_id] || room_id;
+}
+
+async function enterRoom(room_id) {
+  ROOM_ID = room_id;
+  // Update the URL without reloading
+  const newUrl = new URL(window.location.href);
+  newUrl.searchParams.set("room_id", room_id);
+  window.history.replaceState({}, "", newUrl.toString());
+
+  const app = document.getElementById("app");
+  app.innerHTML = `<div class="room-picker-loading">Entering room...</div>`;
+
   await loadCards();
   loadAutoState();
   initSocket();
