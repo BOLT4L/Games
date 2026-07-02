@@ -208,10 +208,10 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 }
 
 .selected {
-  background: linear-gradient(135deg, var(--accent-green), #00b248);
-  border-color: var(--accent-green);
-  color: #000;
-  box-shadow: var(--glow-green);
+  background: linear-gradient(135deg, var(--accent-red), #c62828);
+  border-color: var(--accent-red);
+  color: #fff;
+  box-shadow: 0 0 14px rgba(255,77,109,0.7);
   transform: scale(1.1);
 }
 
@@ -330,9 +330,9 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 
 .bingo-header div {
   background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-  padding: 6px;
+  padding: 4px;
   border-radius: var(--radius-sm);
-  font-size: 14px;
+  font-size: 12px;
   color: white;
   box-shadow: var(--glow-blue);
 }
@@ -344,15 +344,15 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 }
 
 .bingo-cell {
-  width: 50px;
-  height: 50px;
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
   background: var(--bg-surface);
   border: 1px solid rgba(79,142,247,0.18);
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition);
@@ -385,21 +385,21 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 /* ── GAME ARENA ── */
 .arena-title {
   text-align: center;
-  font-size: 15px;
+  font-size: 13px;
   color: var(--accent-purple);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   letter-spacing: 2px;
 }
 
 .arena {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   justify-content: center;
   align-items: flex-start;
-  margin-top: 6px;
+  margin-top: 4px;
   flex-wrap: nowrap;
   width: 100%;
-  padding: 0 8px;
+  padding: 0 6px;
 }
 
 /* Called board takes more space, player card fills remaining */
@@ -416,7 +416,7 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 .called-board {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  padding: 14px;
+  padding: 8px;
   border-radius: var(--radius);
   box-shadow: 0 4px 24px rgba(0,0,0,0.4);
 }
@@ -426,8 +426,8 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
 .recent-ball {
@@ -441,25 +441,25 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 
-.recent-ball.small  { width: 36px; height: 36px; font-size: 14px; opacity: 0.65; }
-.recent-ball.medium { width: 48px; height: 48px; font-size: 17px; opacity: 0.85; }
-.recent-ball.large  { width: 68px; height: 68px; font-size: 24px; box-shadow: 0 0 22px rgba(255,255,255,0.25); }
+.recent-ball.small  { width: 26px; height: 26px; font-size: 11px; opacity: 0.65; }
+.recent-ball.medium { width: 34px; height: 34px; font-size: 13px; opacity: 0.85; }
+.recent-ball.large  { width: 48px; height: 48px; font-size: 18px; box-shadow: 0 0 16px rgba(255,255,255,0.25); }
 
 .called-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 5px;
+  gap: 3px;
 }
 
 .called-number {
-  width: 36px;
-  height: 36px;
-  font-size: 12px;
+  width: 28px;
+  height: 28px;
+  font-size: 10px;
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: 5px;
   background: var(--bg-surface);
   border: 1px solid rgba(79,142,247,0.12);
   color: var(--text-muted);
@@ -478,16 +478,17 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 }
 
 .called-old {
-  background: rgba(79,142,247,0.2) !important;
-  color: var(--accent-blue) !important;
-  border-color: rgba(79,142,247,0.35) !important;
+  background: linear-gradient(135deg, var(--accent-red), #c62828) !important;
+  color: #fff !important;
+  border-color: var(--accent-red) !important;
+  font-weight: 700 !important;
 }
 
 /* ── PLAYER CARD ── */
 .player-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  padding: 16px;
+  padding: 8px;
   border-radius: var(--radius);
   box-shadow: 0 4px 28px rgba(0,0,0,0.45);
 }
@@ -495,9 +496,9 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 .card-label {
   text-align: center;
   font-family: 'Orbitron', sans-serif;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--accent-purple);
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   letter-spacing: 1.5px;
 }
 
@@ -511,32 +512,32 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 .bingo-btn-wrap {
   display: flex;
   justify-content: center;
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 /* ── AUTO CONTROLS ── */
 .auto-controls {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
   justify-content: center;
   align-items: center;
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 .auto-btn {
-  padding: 10px 20px;
+  padding: 7px 14px;
   border: none;
   border-radius: 20px;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 11px;
   cursor: pointer;
   transition: all 0.22s ease;
-  min-width: 140px;
+  min-width: 110px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.35);
   font-family: 'Inter', sans-serif;
 }
@@ -588,9 +589,9 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 
 /* ── BINGO BUTTON ── */
 #callBingoBtn {
-  padding: 13px 30px;
+  padding: 10px 22px;
   font-weight: 800;
-  font-size: 18px;
+  font-size: 15px;
   font-family: 'Orbitron', sans-serif;
   background: linear-gradient(135deg, #ffd700, #ff8c00);
   color: #000;
@@ -916,21 +917,19 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
   padding: 40px 20px;
 }
 
-/* ── FULL-SCREEN ARENA (playing state) ── */
-#app:has(.arena) {
-  padding: 0;
-}
-
-.arena {
-  min-height: calc(100vh - 120px);
-  align-items: stretch;
-}
-
-.called-board,
-.player-card {
-  flex: 1 1 0;
+/* ── ARENA RESPONSIVE ── */
+/* On narrow screens stack vertically */
+@media (max-width: 480px) {
+  .arena {
+    flex-direction: column;
+    align-items: center;
+    padding: 0 4px;
+  }
+  #calledBoard, #playerCard {
+    width: 100%;
+  }
 }
 
 .bingo-grid {
-  gap: 6px;
+  gap: 4px;
 }
