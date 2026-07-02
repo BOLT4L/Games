@@ -833,7 +833,7 @@ async function renderRoomPicker() {
 }
 
 function roomLabel(room_id) {
-  const names = { room00: "Room Free", room0: "Room One", room1: "Room Two", room2: "Room Three", room3: "Room Four" };
+  const names = { room00: "Room Free (1 AED)", room0: "Room One (5 AED)", room1: "Room Two (10 AED)", room2: "Room Three (20 AED)", room3: "Room Four (50 AED)" };
   return names[room_id] || room_id;
 }
 
