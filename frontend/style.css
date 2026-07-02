@@ -208,10 +208,10 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 }
 
 .selected {
-  background: linear-gradient(135deg, var(--accent-red), #c62828);
-  border-color: var(--accent-red);
-  color: #fff;
-  box-shadow: 0 0 14px rgba(255,77,109,0.7);
+  background: linear-gradient(135deg, var(--accent-green), #00b248);
+  border-color: var(--accent-green);
+  color: #000;
+  box-shadow: var(--glow-green);
   transform: scale(1.1);
 }
 
@@ -321,8 +321,8 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 .bingo-header {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
-  margin-bottom: 6px;
+  gap: 3px;
+  margin-bottom: 4px;
   text-align: center;
   font-family: 'Orbitron', sans-serif;
   font-weight: 800;
@@ -332,7 +332,7 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
   background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
   padding: 4px;
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  font-size: 11px;
   color: white;
   box-shadow: var(--glow-blue);
 }
@@ -344,15 +344,15 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 }
 
 .bingo-cell {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
   background: var(--bg-surface);
   border: 1px solid rgba(79,142,247,0.18);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition);
@@ -365,11 +365,11 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 }
 
 .bingo-cell.marked {
-  background: linear-gradient(135deg, var(--accent-green), #00b248);
-  border-color: var(--accent-green);
-  color: #000;
+  background: linear-gradient(135deg, #ff4d6d, #c62828);
+  border-color: #ff4d6d;
+  color: #fff;
   font-weight: 800;
-  box-shadow: var(--glow-green);
+  box-shadow: 0 0 8px rgba(255,77,109,0.6);
   transform: scale(1.05);
 }
 
@@ -385,9 +385,9 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 /* ── GAME ARENA ── */
 .arena-title {
   text-align: center;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--accent-purple);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   letter-spacing: 2px;
 }
 
@@ -426,7 +426,7 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  gap: 6px;
+  gap: 5px;
   margin-bottom: 8px;
 }
 
@@ -441,9 +441,9 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 
-.recent-ball.small  { width: 26px; height: 26px; font-size: 11px; opacity: 0.65; }
-.recent-ball.medium { width: 34px; height: 34px; font-size: 13px; opacity: 0.85; }
-.recent-ball.large  { width: 48px; height: 48px; font-size: 18px; box-shadow: 0 0 16px rgba(255,255,255,0.25); }
+.recent-ball.small  { width: 22px; height: 22px; font-size: 10px; opacity: 0.65; }
+.recent-ball.medium { width: 30px; height: 30px; font-size: 12px; opacity: 0.85; }
+.recent-ball.large  { width: 42px; height: 42px; font-size: 16px; box-shadow: 0 0 14px rgba(255,255,255,0.2); }
 
 .called-grid {
   display: grid;
@@ -452,8 +452,8 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 }
 
 .called-number {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   font-size: 10px;
   font-weight: 600;
   display: flex;
@@ -467,20 +467,20 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 }
 
 .called-last {
-  background: linear-gradient(135deg, var(--accent-green), #00b248) !important;
-  color: #000 !important;
+  background: linear-gradient(135deg, #ff4d6d, #c62828) !important;
+  color: #fff !important;
   font-weight: 800 !important;
-  box-shadow: var(--glow-green);
-  transform: scale(1.2);
-  border-color: var(--accent-green) !important;
+  box-shadow: 0 0 10px rgba(255,77,109,0.7);
+  transform: scale(1.15);
+  border-color: #ff4d6d !important;
   z-index: 1;
   border-radius: 8px !important;
 }
 
 .called-old {
-  background: linear-gradient(135deg, var(--accent-red), #c62828) !important;
+  background: rgba(255,77,109,0.75) !important;
   color: #fff !important;
-  border-color: var(--accent-red) !important;
+  border-color: rgba(255,77,109,0.9) !important;
   font-weight: 700 !important;
 }
 
@@ -496,7 +496,7 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 .card-label {
   text-align: center;
   font-family: 'Orbitron', sans-serif;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--accent-purple);
   margin-bottom: 6px;
   letter-spacing: 1.5px;
@@ -512,32 +512,32 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 .bingo-btn-wrap {
   display: flex;
   justify-content: center;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 /* ── AUTO CONTROLS ── */
 .auto-controls {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   justify-content: center;
   align-items: center;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .auto-btn {
-  padding: 7px 14px;
+  padding: 6px 10px;
   border: none;
   border-radius: 20px;
   font-weight: 700;
-  font-size: 11px;
+  font-size: 10px;
   cursor: pointer;
   transition: all 0.22s ease;
-  min-width: 110px;
+  min-width: 100px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.35);
   font-family: 'Inter', sans-serif;
 }
@@ -589,17 +589,17 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 
 /* ── BINGO BUTTON ── */
 #callBingoBtn {
-  padding: 10px 22px;
+  padding: 8px 18px;
   font-weight: 800;
-  font-size: 15px;
+  font-size: 13px;
   font-family: 'Orbitron', sans-serif;
   background: linear-gradient(135deg, #ffd700, #ff8c00);
   color: #000;
   border: none;
-  border-radius: 24px;
+  border-radius: 20px;
   cursor: pointer;
-  box-shadow: 0 0 18px rgba(255,215,0,0.55), 0 4px 12px rgba(0,0,0,0.4);
-  letter-spacing: 3px;
+  box-shadow: 0 0 12px rgba(255,215,0,0.5), 0 3px 8px rgba(0,0,0,0.4);
+  letter-spacing: 2px;
   animation: pulseBingo 2s infinite;
 }
 
@@ -917,19 +917,16 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
   padding: 40px 20px;
 }
 
-/* ── ARENA RESPONSIVE ── */
-/* On narrow screens stack vertically */
-@media (max-width: 480px) {
-  .arena {
-    flex-direction: column;
-    align-items: center;
-    padding: 0 4px;
-  }
-  #calledBoard, #playerCard {
-    width: 100%;
-  }
+/* ── FULL-SCREEN ARENA (playing state) ── */
+#app:has(.arena) {
+  padding: 0;
+}
+
+.called-board,
+.player-card {
+  flex: 1 1 0;
 }
 
 .bingo-grid {
-  gap: 4px;
+  gap: 3px;
 }
