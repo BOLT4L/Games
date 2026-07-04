@@ -1,0 +1,753 @@
+/* ═══════════════════════════════════════════════
+   NDxB Bingo — Mobile-First Full Screen Styles
+   ═══════════════════════════════════════════════ */
+
+/* ── Reset & Base ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;          /* no scroll anywhere */
+  background: #0d0d1f;
+  color: #e8eaf6;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  touch-action: manipulation;
+}
+
+/* ── Scale wrapper — fills viewport exactly ── */
+#scale-wrapper {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #0d0d1f;
+}
+
+/* ── Top bar ── */
+.top-fixed {
+  flex-shrink: 0;
+  background: #12122a;
+  border-bottom: 1px solid #1e1e4a;
+  z-index: 100;
+}
+
+.brand-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 2px;
+}
+
+.brand-logo {
+  font-size: 20px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 1px;
+}
+
+.brand-x {
+  color: #4f8ef7;
+}
+
+.brand-tagline {
+  font-size: 12px;
+  color: #a0aec0;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* ── Game info bar ── */
+.bottom-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 8px 6px;
+  align-items: center;
+}
+
+.info-box {
+  background: #1a1a3a;
+  border: 1px solid #2a2a5a;
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 11px;
+  color: #c0c8ff;
+  white-space: nowrap;
+}
+
+.info-box strong {
+  color: #fff;
+}
+
+/* ── State badge ── */
+.state-badge {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.state-waiting   { background: #1e3a1e; color: #4ade80; border-color: #2d5a2d; }
+.state-countdown { background: #3a2a00; color: #fbbf24; border-color: #5a4200; }
+.state-playing   { background: #1e2a4a; color: #60a5fa; border-color: #2d3f6a; }
+.state-ended     { background: #2a1e1e; color: #f87171; border-color: #4a2d2d; }
+
+/* ── Top layout (countdown outside arena) ── */
+.top-layout {
+  flex-shrink: 0;
+  padding: 4px 8px;
+}
+
+/* ── Main content area — scrolls only here ── */
+#app {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 6px 8px;
+}
+
+/* During gameplay the arena fills the space — no scrolling needed */
+#app.arena-mode {
+  overflow: hidden;
+  padding: 4px 6px 0;
+}
+
+/* ══════════════════════════════
+   CARD SELECTION SCREEN
+══════════════════════════════ */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.section-header h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #c0c8ff;
+}
+
+.countdown-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #1e2a4a;
+  border: 1px solid #2d3f6a;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+.countdown-icon { font-size: 12px; }
+
+/* ── Card grid ── */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.card {
+  background: #1a1a3a;
+  border: 1px solid #2a2a6a;
+  border-radius: 6px;
+  padding: 8px 4px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  color: #c0c8ff;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  user-select: none;
+}
+
+.card:active { transform: scale(0.95); }
+
+.card.selected {
+  background: #1e3a6e;
+  border-color: #4f8ef7;
+  color: #fff;
+  box-shadow: 0 0 8px #4f8ef755;
+}
+
+.card.disabled {
+  background: #111125;
+  border-color: #1a1a3a;
+  color: #444;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.card.my-card {
+  background: #1a3a1a;
+  border-color: #4ade80;
+  color: #4ade80;
+  cursor: default;
+}
+
+/* ── Pagination ── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 0;
+}
+
+.nav-btn {
+  background: #1a1a3a;
+  border: 1px solid #2a2a6a;
+  border-radius: 6px;
+  padding: 6px 12px;
+  color: #c0c8ff;
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.nav-btn:active { background: #2a2a5a; }
+
+.page-indicator {
+  font-size: 11px;
+  color: #6070a0;
+}
+
+/* ══════════════════════════════
+   CARD PREVIEW MODAL
+══════════════════════════════ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 12px;
+}
+
+.modal-box {
+  background: #12122a;
+  border: 1px solid #2a2a6a;
+  border-radius: 14px;
+  padding: 16px;
+  width: 100%;
+  max-width: 320px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #1e1e4a;
+  border: none;
+  color: #aaa;
+  font-size: 16px;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-preview { width: 100%; }
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.preview-header h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #c0c8ff;
+}
+
+.preview-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.preview-actions button {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#placeBetBtn  { background: #4f8ef7; color: #fff; }
+#cancelBetBtn { background: #ef4444; color: #fff; }
+
+/* ══════════════════════════════
+   BINGO GRID (shared)
+══════════════════════════════ */
+.bingo-header {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2px;
+  margin-bottom: 2px;
+}
+
+.bingo-header div {
+  background: #1e2a6e;
+  color: #60a5fa;
+  font-weight: 900;
+  font-size: 13px;
+  text-align: center;
+  padding: 4px 2px;
+  border-radius: 4px;
+}
+
+.bingo-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2px;
+}
+
+.bingo-cell {
+  background: #1a1a3a;
+  border: 1px solid #2a2a5a;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #c0c8ff;
+  cursor: pointer;
+  aspect-ratio: 1;
+  transition: background 0.15s, color 0.15s;
+  user-select: none;
+}
+
+.bingo-cell.marked {
+  background: #fbbf24;
+  color: #000;
+  border-color: #d97706;
+}
+
+/* ══════════════════════════════
+   GAME ARENA
+══════════════════════════════ */
+.arena-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #a0aec0;
+  text-align: center;
+  margin-bottom: 4px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Arena: two-column layout on mobile */
+.arena {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  height: calc(100vh - 130px); /* fill remaining screen height */
+  overflow: hidden;
+}
+
+/* ── Called Board (left column) ── */
+.called-board {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Recent balls row */
+.recent-numbers {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 4px 2px;
+}
+
+.recent-ball {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  color: #fff;
+  flex-shrink: 0;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+
+/* Size tiers for the drawn number balls */
+.recent-ball.small  { width: 28px; height: 28px; font-size: 11px; opacity: 0.7; }
+.recent-ball.medium { width: 38px; height: 38px; font-size: 14px; opacity: 0.85; }
+.recent-ball.large  {
+  width: 56px;
+  height: 56px;
+  font-size: 20px;
+  box-shadow: 0 0 16px rgba(255,255,255,0.3), 0 0 6px rgba(255,255,255,0.15);
+  animation: pulse-ball 0.6s ease-out;
+}
+
+@keyframes pulse-ball {
+  0%   { transform: scale(0.6); opacity: 0; }
+  70%  { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Called numbers grid inside the board */
+.called-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.called-number {
+  background: #11112a;
+  border: 1px solid #1e1e4a;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: #3a3a6a;
+  aspect-ratio: 1;
+}
+
+.called-number.called-old {
+  background: #1e2a4a;
+  color: #6080c0;
+  border-color: #2a3a6a;
+}
+
+.called-number.called-last {
+  background: #4f8ef7;
+  color: #fff;
+  font-weight: 900;
+  border-color: #60a0ff;
+  box-shadow: 0 0 8px #4f8ef755;
+  animation: pulse-ball 0.5s ease-out;
+}
+
+/* ── Player Card (right column) ── */
+.player-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.card-label {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6080c0;
+  margin-bottom: 2px;
+  flex-shrink: 0;
+}
+
+/* Make the bingo grid inside player-card fill available space */
+.player-card .bingo-header {
+  flex-shrink: 0;
+}
+
+.player-card .bingo-grid {
+  flex: 1;
+  /* Override aspect-ratio to fill height */
+  grid-template-rows: repeat(5, 1fr);
+}
+
+.player-card .bingo-cell {
+  aspect-ratio: unset; /* let grid rows determine size */
+  height: 100%;
+  font-size: clamp(10px, 2.2vw, 14px);
+}
+
+/* Bingo button */
+.bingo-btn-wrap {
+  flex-shrink: 0;
+  padding: 4px 0;
+}
+
+.bingo-btn-wrap button,
+#callBingoBtn {
+  width: 100%;
+  padding: 8px;
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  cursor: pointer;
+  text-transform: uppercase;
+  box-shadow: 0 2px 8px rgba(239,68,68,0.4);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+#callBingoBtn:active {
+  transform: scale(0.97);
+  box-shadow: 0 1px 4px rgba(239,68,68,0.3);
+}
+
+/* Auto controls */
+.auto-controls {
+  flex-shrink: 0;
+  display: flex;
+  gap: 4px;
+  padding-top: 3px;
+}
+
+.auto-btn {
+  flex: 1;
+  padding: 5px 3px;
+  border-radius: 6px;
+  border: 1px solid #2a2a5a;
+  background: #12122a;
+  color: #a0a8d0;
+  font-size: 9px;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s;
+}
+
+.auto-btn.on {
+  background: #1a3a1a;
+  border-color: #2d5a2d;
+  color: #4ade80;
+}
+
+.waiting-msg {
+  text-align: center;
+  color: #6070a0;
+  font-size: 12px;
+  padding: 20px 0;
+}
+
+/* ══════════════════════════════
+   ROOM PICKER
+══════════════════════════════ */
+.room-picker {
+  padding: 8px 0;
+}
+
+.room-picker-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #c0c8ff;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.room-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.room-card {
+  background: #12122a;
+  border: 1px solid #2a2a5a;
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.room-card:active { background: #1a1a3a; }
+
+/* ── Remove the playing-restriction visual — still clickable ── */
+.room-card--disabled {
+  /* No longer grayed out or blocked — all rooms are enterable */
+  cursor: pointer;
+  opacity: 1;
+}
+
+.room-card-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e8eaf6;
+  flex: 1;
+  min-width: 100%;
+}
+
+.room-card-bet,
+.room-card-players {
+  font-size: 12px;
+  color: #8090c0;
+}
+
+.room-card-state {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.room-picker-loading,
+.room-picker-error {
+  text-align: center;
+  padding: 24px;
+  color: #6070a0;
+  font-size: 14px;
+}
+
+/* ══════════════════════════════
+   POPUP / TOAST / MODALS
+══════════════════════════════ */
+.popup {
+  position: fixed;
+  z-index: 500;
+  pointer-events: none;
+}
+
+.popup-toast {
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e2a4a;
+  border: 1px solid #2d3f6a;
+  border-radius: 24px;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #c0d0ff;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  pointer-events: none;
+}
+
+.popup-modal {
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: all;
+  background: rgba(0,0,0,0.6);
+  padding: 16px;
+}
+
+.popup-backdrop {
+  position: absolute;
+  inset: 0;
+}
+
+.popup-modal-box {
+  position: relative;
+  background: #12122a;
+  border: 1px solid #2a2a6a;
+  border-radius: 16px;
+  padding: 20px 16px 16px;
+  width: 100%;
+  max-width: 320px;
+  max-height: 80vh;
+  overflow-y: auto;
+  text-align: center;
+  z-index: 1;
+}
+
+.win-popup { border-color: #fbbf24; }
+.win-popup h2 { color: #fbbf24; font-size: 22px; margin-bottom: 6px; }
+.win-fireworks { font-size: 36px; margin-bottom: 6px; }
+
+.lose-popup h2 { color: #f87171; font-size: 18px; margin-bottom: 8px; }
+
+.winner-cards-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin: 8px 0;
+}
+
+.winner-card-item {
+  text-align: center;
+  font-size: 11px;
+}
+
+.winner-name { font-weight: 700; color: #c0c8ff; margin-bottom: 2px; }
+.winner-cardnum { color: #6070a0; margin-bottom: 4px; }
+
+.popup-close-btn {
+  margin-top: 12px;
+  padding: 8px 24px;
+  background: #1e2a4a;
+  border: 1px solid #2d3f6a;
+  border-radius: 20px;
+  color: #c0d0ff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* ══════════════════════════════
+   COUNTDOWN (top area)
+══════════════════════════════ */
+#countdown {
+  font-size: 12px;
+  color: #6070a0;
+}
+
+/* ══════════════════════════════
+   RESPONSIVE TWEAKS
+══════════════════════════════ */
+
+/* Slightly larger screens — give more space to balls */
+@media (min-width: 360px) {
+  .recent-ball.large  { width: 64px; height: 64px; font-size: 24px; }
+  .recent-ball.medium { width: 44px; height: 44px; font-size: 16px; }
+  .recent-ball.small  { width: 32px; height: 32px; font-size: 12px; }
+  .player-card .bingo-cell { font-size: clamp(11px, 3vw, 16px); }
+}
+
+@media (min-width: 480px) {
+  .recent-ball.large  { width: 72px; height: 72px; font-size: 28px; }
+  .recent-ball.medium { width: 50px; height: 50px; font-size: 18px; }
+  .arena { gap: 10px; }
+  .auto-btn { font-size: 11px; }
+}
+
+/* Landscape phone */
+@media (orientation: landscape) and (max-height: 500px) {
+  .top-fixed .brand-bar { padding: 3px 8px 1px; }
+  .brand-logo { font-size: 16px; }
+  .brand-tagline { display: none; }
+  .bottom-bar { padding: 2px 6px 3px; }
+  .info-box { font-size: 10px; padding: 1px 5px; }
+  .arena { height: calc(100vh - 90px); }
+  .recent-ball.large  { width: 44px; height: 44px; font-size: 16px; }
+  .recent-ball.medium { width: 30px; height: 30px; font-size: 11px; }
+  .recent-ball.small  { width: 22px; height: 22px; font-size: 9px; }
+}

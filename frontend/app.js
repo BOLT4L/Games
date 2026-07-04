@@ -205,13 +205,7 @@ function renderGameArena(state) {
         <div id="playerCard"></div>
       </div>
     `;
-    // Expand scale-wrapper to full screen during play
-    const wrapper = document.getElementById("scale-wrapper");
-    if (wrapper) {
-      wrapper.style.transform = "none";
-      wrapper.style.width = "100%";
-      wrapper.style.height = "auto";
-    }
+    app.classList.add("arena-mode");
     renderPlayerCard();
     updateCalledBoard();
     attachArenaEvents();
@@ -687,13 +681,9 @@ function handleStateUpdate(state) {
 function resetPlayerState() {
   markedCells.clear(); selectedCard = null; myPickedCard = null;
   clearPreview(); arenaInitialized = false; hasCalledBingo = false; resultShown = false;
-  // Restore scale wrapper for card selection screen
-  const wrapper = document.getElementById("scale-wrapper");
-  if (wrapper) {
-    wrapper.style.transform = "scale(0.5)";
-    wrapper.style.width = "200%";
-    wrapper.style.height = "200%";
-  }
+  // Remove arena layout class so card-selection can scroll normally
+  const app = document.getElementById("app");
+  if (app) app.classList.remove("arena-mode");
 }
 
 function updateCountdown(state) {
@@ -817,9 +807,9 @@ async function renderRoomPicker() {
 
   rooms.forEach(room => {
     const state = room.state || "waiting";
-    const disabled = state === "playing" ? "room-card--disabled" : "";
+    // All rooms are always enterable — no disabled state
     html += `
-      <div class="room-card ${disabled}" onclick="enterRoom('${room.room_id}')">
+      <div class="room-card" onclick="enterRoom('${room.room_id}')">
         <div class="room-card-name">${roomLabel(room.room_id)}</div>
         <div class="room-card-bet">💰 ${room.bet_amount} AED</div>
         <div class="room-card-players">👥 ${room.players} players</div>
