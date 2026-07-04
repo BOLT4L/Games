@@ -110,7 +110,7 @@ def create_user(user, phone, lang):
     now = datetime.utcnow().isoformat()
 
     users_ref.child(uid).set({
-        "balance": 5,
+        "balance": 0,
         "createdAt": now,
         "gamesPlayed": 0,
         "gamesWon": 0,
