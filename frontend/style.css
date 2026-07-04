@@ -41,8 +41,12 @@ body {
     radial-gradient(ellipse at 15% 15%, rgba(79,142,247,0.10) 0%, transparent 60%),
     radial-gradient(ellipse at 85% 85%, rgba(180,123,255,0.08) 0%, transparent 60%);
   color: var(--text-primary);
+  /* true full-screen on every browser/device */
+  width: 100vw;
   min-height: 100vh;
   min-height: 100dvh;
+  /* extend behind notch/camera areas */
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
@@ -50,7 +54,9 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 /* ── TOP FIXED BAR ── */
 .top-fixed {
   position: fixed;
-  top: 0;
+  /* 10vh pushes the bar below the front camera on tall phones;
+     env(safe-area-inset-top) handles notches/Dynamic Island */
+  top: max(10vh, env(safe-area-inset-top, 0px));
   left: 0;
   width: 100%;
   z-index: 1000;
@@ -129,9 +135,14 @@ h1, h2, h3 { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
 
 /* ── MAIN CONTENT (below fixed header) ── */
 #main-content {
-  padding-top: var(--header-h);
+  /* starts below the 10vh camera gap + the bar itself */
+  padding-top: calc(max(10vh, env(safe-area-inset-top, 0px)) + var(--header-h));
   width: 100%;
   min-height: 100dvh;
+  /* fill left/right safe areas on curved screens */
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 #app {
