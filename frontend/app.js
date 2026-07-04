@@ -205,7 +205,13 @@ function renderGameArena(state) {
         <div id="playerCard"></div>
       </div>
     `;
-    // scale-wrapper is already full-screen via CSS flex layout
+    // Expand scale-wrapper to full screen during play
+    const wrapper = document.getElementById("scale-wrapper");
+    if (wrapper) {
+      wrapper.style.transform = "none";
+      wrapper.style.width = "100%";
+      wrapper.style.height = "auto";
+    }
     renderPlayerCard();
     updateCalledBoard();
     attachArenaEvents();
@@ -681,6 +687,13 @@ function handleStateUpdate(state) {
 function resetPlayerState() {
   markedCells.clear(); selectedCard = null; myPickedCard = null;
   clearPreview(); arenaInitialized = false; hasCalledBingo = false; resultShown = false;
+  // Restore scale wrapper for card selection screen
+  const wrapper = document.getElementById("scale-wrapper");
+  if (wrapper) {
+    wrapper.style.transform = "scale(0.5)";
+    wrapper.style.width = "200%";
+    wrapper.style.height = "200%";
+  }
 }
 
 function updateCountdown(state) {
