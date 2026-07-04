@@ -199,7 +199,6 @@ function renderGameArena(state) {
   const app = document.getElementById("app");
   if (!arenaInitialized) {
     app.innerHTML = `
-      <h2 class="arena-title">${t("game_arena")}</h2>
       <div class="arena">
         <div id="calledBoard"></div>
         <div id="playerCard"></div>
