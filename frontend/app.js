@@ -769,6 +769,13 @@ function initSocket() {
 }
 
 async function startApp() {
+  // Re-trigger full screen after JS loads (belt-and-suspenders for Telegram)
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if (tg) {
+    tg.expand();
+    if (typeof tg.requestFullscreen === "function") tg.requestFullscreen();
+  }
+
   if (!ROOM_ID) {
     await renderRoomPicker();
     return;
