@@ -813,7 +813,7 @@ async function renderRoomPicker() {
 
   rooms.forEach(room => {
     const state = room.state || "waiting";
-    const disabled = state === "playing" ? "room-card--disabled" : "";
+    const disabled = state === "stopped" ? "room-card--disabled" : "";
     html += `
       <div class="room-card ${disabled}" onclick="enterRoom('${room.room_id}')">
         <div class="room-card-name">${roomLabel(room.room_id)}</div>
