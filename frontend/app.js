@@ -205,7 +205,7 @@ function renderGameArena(state) {
         <div id="playerCard"></div>
       </div>
     `;
-    app.classList.add("arena-mode");
+    // scale-wrapper is already full-screen via CSS flex layout
     renderPlayerCard();
     updateCalledBoard();
     attachArenaEvents();
@@ -681,9 +681,6 @@ function handleStateUpdate(state) {
 function resetPlayerState() {
   markedCells.clear(); selectedCard = null; myPickedCard = null;
   clearPreview(); arenaInitialized = false; hasCalledBingo = false; resultShown = false;
-  // Remove arena layout class so card-selection can scroll normally
-  const app = document.getElementById("app");
-  if (app) app.classList.remove("arena-mode");
 }
 
 function updateCountdown(state) {
@@ -807,9 +804,9 @@ async function renderRoomPicker() {
 
   rooms.forEach(room => {
     const state = room.state || "waiting";
-    // All rooms are always enterable — no disabled state
+    const disabled = state === "playing" ? "room-card--disabled" : "";
     html += `
-      <div class="room-card" onclick="enterRoom('${room.room_id}')">
+      <div class="room-card ${disabled}" onclick="enterRoom('${room.room_id}')">
         <div class="room-card-name">${roomLabel(room.room_id)}</div>
         <div class="room-card-bet">💰 ${room.bet_amount} AED</div>
         <div class="room-card-players">👥 ${room.players} players</div>
