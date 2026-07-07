@@ -302,6 +302,8 @@ function startAutoBingoWatcher() {
       socket.emit("bingo", { room_id: ROOM_ID, user_id: USER_ID, card_id: selectedCard, pattern: [...markedCells] });
       hasCalledBingo = true;
       showPopup("Auto Bingo Called!");
+      // Stop the watcher — no need to keep running after bingo is called
+      stopAutoBingoWatcher();
     }
   }, 500);
 }
@@ -545,8 +547,11 @@ function dismissPopup() {
 async function renderHighlightedCard(cardId, pattern, containerId, isWinner = false) {
   const container = document.getElementById(containerId);
   if (!container) return;
-  const res = await fetch("cards.json");
-  allCards = await res.json();
+  // Use already-loaded allCards instead of re-fetching cards.json
+  if (!allCards || Object.keys(allCards).length === 0) {
+    const res = await fetch("cards.json");
+    allCards = await res.json();
+  }
   const numbers = allCards[cardId];
   if (!numbers) { container.innerHTML = `<div style="color:red">Card ${cardId} not found!</div>`; return; }
   const markedSet = new Set(pattern);
@@ -831,7 +836,9 @@ async function renderRoomPicker() {
     `;
   });
 
-  html += `</div></div>`;
+  html += `    </div>
+    </div>
+  `;
   app.innerHTML = html;
 }
 
